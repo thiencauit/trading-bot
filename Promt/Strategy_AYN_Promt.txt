@@ -1,0 +1,71 @@
+Bạn là chuyên gia Pine Script (v6). Viết strategy backtest dựa trên logic AYN ở trên, với tối thiểu:
+
+Mục tiêu
+
+Entry/exit thuận xu hướng lớn, quản trị theo AutoFibo + ribbon + EMA99/200, có thống kê PnL, WinRate, Max DD.
+
+Cho phép bật/tắt các lớp hiển thị như bản indicator (để quan sát), nhưng ưu tiên logic chiến lược & lệnh.
+
+Entry / Exit
+
+Bias filter (tùy chọn bật/tắt): chỉ Long nếu bias 1D/1W bullish (>= 1 trong 2) và close > EMA200; chỉ Short nếu bias 1D/1W bearish và close < EMA200.
+
+Entry Long: khi điều kiện BUY (ribbon xanh + close > EMA99 + momentum ok).
+
+Entry Short: khi điều kiện SELL (ribbon đỏ + close < EMA99 + momentum ok).
+
+Stop/TP:
+
+Mặc định Stop tại level AutoFibo gần nhất phía ngược xu hướng (ví dụ Long: dưới 0.382/0.5/0.618 chọn gần nhất, cho phép chọn preset).
+
+TP tại level AutoFibo kế tiếp cùng xu hướng (ví dụ Long: 0.618 → 1.0).
+
+Tùy chọn trailing theo mép ribbon (ShortTrend) hoặc theo EMA99.
+
+Position sizing: 1%–2% risk per trade (input %).
+
+Chỉ vào 1 lệnh tại một thời điểm; có input cho pyramiding (mặc định 0).
+
+Inputs bổ sung
+
+Bật/tắt bias filter; chọn khung bias (1D, 1W).
+
+Chọn dùng SMA/EMA cho bias.
+
+Chọn preset Fibo cho Stop/TP (ví dụ: Stop = 0.618, TP = 1.0; hoặc Stop = 0.5, TP = 0.786).
+
+IndicatorLengths.
+
+Session filter (tùy chọn).
+
+Commission, slippage.
+
+Plot & HUD
+
+Vẽ lại các lớp (ribbon, EMA99/200, Fibo) như indicator (có checkbox).
+
+Vẽ nhãn Buy@ / Sell@ khi strategy.entry được kích hoạt (đồng bộ với plotshape).
+
+Hiển thị bảng mini: Net Profit, WinRate, Max Drawdown, Avg Trade, RR trung bình.
+
+Kỹ thuật
+
+strategy(…, overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.05) (giá trị ví dụ).
+
+Không repaint (tránh future leaks).
+
+Code sạch, có chú thích.
+
+Kiểm thử tối thiểu
+
+Backtest khung 5m/15m/1H chạy ổn, không vượt limit labels/lines.
+
+Bật/tắt bias filter cho kết quả khác biệt hợp lý (thuận xu hướng ít drawdown hơn).
+
+PnL/WinRate hiện trong Strategy Tester.
+
+Đầu ra mong muốn: Trả về một file mã Pine v6 hoàn chỉnh, biên dịch chạy ngay trong TradingView, kèm plots tối thiểu cần thiết; không kèm bình luận dài.
+
+(Các đặc tả được tổng hợp từ mô tả yêu cầu đã cung cấp.)
+
+Muốn mình gộp cả 2 (indicator + strategy) vào một prompt, hay tách riêng như trên là ổn nhất? Mình cũng có thể thêm “Acceptance Checklist” để AI tự tick khi sinh code nếu lão đại thích.

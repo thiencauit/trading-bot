@@ -1,0 +1,137 @@
+//@version=6
+indicator(title="Moving Average Convergence Divergence", shorttitle="MACD", timeframe="", timeframe_gaps=true)
+// Getting inputs
+fast_length = input(title = "Fast Length", defval = 12)
+slow_length = input(title = "Slow Length", defval = 26)
+src = input(title = "Source", defval = close)
+signal_length = input.int(title = "Signal Smoothing",  minval = 1, maxval = 50, defval = 9, display = display.data_window)
+sma_source = input.string(title = "Oscillator MA Type",  defval = "EMA", options = ["SMA", "EMA"], display = display.data_window)
+sma_signal = input.string(title = "Signal Line MA Type", defval = "EMA", options = ["SMA", "EMA"], display = display.data_window)
+
+// Signal settings
+showSignals = input.bool(true, "Show Buy/Sell Signals", group="Signal Settings")
+showCrossSignals = input.bool(true, "Show Cross Signals", group="Signal Settings")
+showDivergence = input.bool(true, "Show Divergence Signals", group="Signal Settings")
+
+// Calculating
+fast_ma = sma_source == "SMA" ? ta.sma(src, fast_length) : ta.ema(src, fast_length)
+slow_ma = sma_source == "SMA" ? ta.sma(src, slow_length) : ta.ema(src, slow_length)
+macd = fast_ma - slow_ma
+signal = sma_signal == "SMA" ? ta.sma(macd, signal_length) : ta.ema(macd, signal_length)
+hist = macd - signal
+
+// Signal conditions
+// MACD crosses above Signal line (Bullish)
+macdCrossUp = ta.crossover(macd, signal)
+// MACD crosses below Signal line (Bearish)
+macdCrossDown = ta.crossunder(macd, signal)
+
+// MACD crosses above zero line (Strong Bullish)
+macdCrossZeroUp = ta.crossover(macd, 0)
+// MACD crosses below zero line (Strong Bearish)
+macdCrossZeroDown = ta.crossunder(macd, 0)
+
+// Histogram changing direction
+histRisingToFalling = hist[1] >= 0 and hist < 0
+histFallingToRising = hist[1] <= 0 and hist > 0
+
+// Divergence detection
+pivotLookback = input.int(5, "Divergence Lookback", minval=2, group="Signal Settings")
+
+// Find pivot points for price
+pricePivotHigh = ta.pivothigh(high, pivotLookback, pivotLookback)
+pricePivotLow = ta.pivotlow(low, pivotLookback, pivotLookback)
+
+// Find pivot points for MACD
+macdPivotHigh = ta.pivothigh(macd, pivotLookback, pivotLookback)
+macdPivotLow = ta.pivotlow(macd, pivotLookback, pivotLookback)
+
+// Store previous pivots
+var float prevPriceHigh = na
+var float prevPriceLow = na
+var float prevMacdHigh = na
+var float prevMacdLow = na
+var int prevPriceHighBar = na
+var int prevPriceLowBar = na
+var int prevMacdHighBar = na
+var int prevMacdLowBar = na
+
+// Update pivot lows (for bullish divergence)
+if not na(pricePivotLow)
+    prevPriceLow := pricePivotLow
+    prevPriceLowBar := bar_index - pivotLookback
+
+if not na(macdPivotLow)
+    prevMacdLow := macdPivotLow
+    prevMacdLowBar := bar_index - pivotLookback
+
+// Update pivot highs (for bearish divergence)
+if not na(pricePivotHigh)
+    prevPriceHigh := pricePivotHigh
+    prevPriceHighBar := bar_index - pivotLookback
+
+if not na(macdPivotHigh)
+    prevMacdHigh := macdPivotHigh
+    prevMacdHighBar := bar_index - pivotLookback
+
+// Detect Bullish Divergence (Phân kì dương)
+// Price makes lower low, but MACD makes higher low
+var float lastBullDivPriceLow = na
+var float lastBullDivMacdLow = na
+
+bullishDivergence = false
+if not na(pricePivotLow) and not na(macdPivotLow) and not na(lastBullDivPriceLow) and not na(lastBullDivMacdLow)
+    // Giá tạo đáy thấp hơn đáy trước, nhưng MACD tạo đáy cao hơn đáy trước
+    if pricePivotLow < lastBullDivPriceLow and macdPivotLow > lastBullDivMacdLow
+        bullishDivergence := true
+
+if not na(pricePivotLow)
+    lastBullDivPriceLow := pricePivotLow
+    
+if not na(macdPivotLow)
+    lastBullDivMacdLow := macdPivotLow
+
+// Detect Bearish Divergence (Phân kì âm)
+// Price makes higher high, but MACD makes lower high
+var float lastBearDivPriceHigh = na
+var float lastBearDivMacdHigh = na
+
+bearishDivergence = false
+if not na(pricePivotHigh) and not na(macdPivotHigh) and not na(lastBearDivPriceHigh) and not na(lastBearDivMacdHigh)
+    // Giá tạo đỉnh cao hơn đỉnh trước, nhưng MACD tạo đỉnh thấp hơn đỉnh trước
+    if pricePivotHigh > lastBearDivPriceHigh and macdPivotHigh < lastBearDivMacdHigh
+        bearishDivergence := true
+
+if not na(pricePivotHigh)
+    lastBearDivPriceHigh := pricePivotHigh
+    
+if not na(macdPivotHigh)
+    lastBearDivMacdHigh := macdPivotHigh
+
+// Main Buy/Sell signals
+// BUY: MACD crosses above signal line
+buySignal = macdCrossUp
+// SELL: MACD crosses below signal line
+sellSignal = macdCrossDown
+
+// Plot MACD
+hline(0, "Zero Line", color = color.new(#787B86, 50))
+plot(hist, title = "Histogram", style = plot.style_columns, color = (hist >= 0 ? (hist[1] < hist ? #26A69A : #B2DFDB) : (hist[1] < hist ? #FFCDD2 : #FF5252)))
+plot(macd,   title = "MACD",   color = #2962FF, linewidth=2)
+plot(signal, title = "Signal", color = #FF6D00, linewidth=2)
+
+// Plot Buy/Sell signals
+plotshape(showSignals and buySignal, title="BUY Signal", text="BUY", style=shape.labelup, location=location.bottom, color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
+plotshape(showSignals and sellSignal, title="SELL Signal", text="SELL", style=shape.labeldown, location=location.top, color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
+
+// Plot Divergence signals
+plotshape(showDivergence and bullishDivergence, title="Bullish Divergence", text="BullDiv", style=shape.labelup, location=location.bottom, color=color.new(color.blue, 0), textcolor=color.white, size=size.small, offset=-pivotLookback)
+plotshape(showDivergence and bearishDivergence, title="Bearish Divergence", text="BearishDiv", style=shape.labeldown, location=location.top, color=color.new(color.orange, 0), textcolor=color.white, size=size.small, offset=-pivotLookback)
+
+// Alerts
+alertcondition(buySignal, title="BUY Signal", message="MACD: BUY - MACD crossed above Signal line")
+alertcondition(sellSignal, title="SELL Signal", message="MACD: SELL - MACD crossed below Signal line")
+alertcondition(bullishDivergence, title="Bullish Divergence", message="MACD: Bullish Divergence detected - Potential reversal up")
+alertcondition(bearishDivergence, title="Bearish Divergence", message="MACD: Bearish Divergence detected - Potential reversal down")
+alertcondition(histRisingToFalling, title='Histogram Rising to Falling', message='MACD: Histogram switched from rising to falling')
+alertcondition(histFallingToRising, title='Histogram Falling to Rising', message='MACD: Histogram switched from falling to rising')

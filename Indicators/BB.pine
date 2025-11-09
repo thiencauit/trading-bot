@@ -1,0 +1,97 @@
+//@version=6
+indicator(shorttitle="BB", title="Bollinger Bands Enhanced", overlay=true)
+
+// Input settings
+length = input.int(20, "Period", minval=1, group="BB Settings")
+maType = input.string("SMA", "Basis MA Type", options = ["SMA", "EMA", "SMMA (RMA)", "WMA", "VWMA"], group="BB Settings")
+src = input(close, title="Source", group="BB Settings")
+mult = input.float(2.0, minval=0.001, maxval=50, title="StdDev", group="BB Settings")
+offset = input.int(0, "Offset", minval = -500, maxval = 500, display = display.data_window, group="BB Settings")
+
+// Signal settings
+showSignals = input.bool(true, "Show Buy/Sell Signals", group="Signal Settings")
+showBreakouts = input.bool(true, "Show Breakout Signals", group="Signal Settings")
+showSqueeze = input.bool(true, "Show Squeeze Alerts", group="Signal Settings")
+
+// Moving average function
+ma(source, length, _type) =>
+    switch _type
+        "SMA" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+        "SMMA (RMA)" => ta.rma(source, length)
+        "WMA" => ta.wma(source, length)
+        "VWMA" => ta.vwma(source, length)
+
+// Calculate Bollinger Bands
+basis = ma(src, length, maType)
+dev = mult * ta.stdev(src, length)
+upper = basis + dev
+lower = basis - dev
+
+// Plot Bollinger Bands
+plot(basis, "Basis", color=#2962FF, offset = offset, linewidth=1)
+p1 = plot(upper, "Upper", color=#F23645, offset = offset, linewidth=1)
+p2 = plot(lower, "Lower", color=#089981, offset = offset, linewidth=1)
+fill(p1, p2, title = "Background", color=color.rgb(33, 150, 243, 95))
+
+// Bandwidth (for squeeze detection)
+bandwidth = (upper - lower) / basis * 100
+bandwidthSMA = ta.sma(bandwidth, 20)
+
+// Check if bands are contracting (thu hẹp) or expanding (mở rộng)
+bandwidthChange = bandwidth - bandwidth[1]
+isContracting = bandwidthChange < 0  // Bands đang thu hẹp
+isExpanding = bandwidthChange > 0    // Bands đang mở rộng
+
+// Bollinger Squeeze Detection
+squeeze = bandwidth < ta.lowest(bandwidth, 100) * 1.5
+squeezeBgColor = squeeze ? color.new(color.orange, 95) : na
+bgcolor(showSqueeze ? squeezeBgColor : na, title="Squeeze Background")
+
+// Price position relative to bands
+priceAboveUpper = close > upper
+priceBelowLower = close < lower
+
+// %B indicator (shows where price is relative to bands)
+percentB = (close - lower) / (upper - lower) * 100
+
+// Signal conditions
+// Buy signals - chỉ khi bands đang thu hẹp
+buySignalBounce = isContracting and (ta.crossover(close, lower) or (low <= lower and close > lower and close > open))
+buySignalMidBounce = isContracting and ta.crossover(close, basis) and close > open and close[1] < basis[1]
+
+// Sell signals - chỉ khi bands đang thu hẹp
+sellSignalBounce = isContracting and (ta.crossunder(close, upper) or (high >= upper and close < upper and close < open))
+sellSignalMidBounce = isContracting and ta.crossunder(close, basis) and close < open and close[1] > basis[1]
+
+// Breakout signals - xuyên qua band với volume cao
+breakoutUp = ta.crossover(close, upper) and volume > ta.sma(volume, 20) * 1.5
+breakoutDown = ta.crossunder(close, lower) and volume > ta.sma(volume, 20) * 1.5
+
+// Plot signals
+plotshape(showSignals and buySignalBounce, title="Buy at Lower Band", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.small)
+plotshape(showSignals and sellSignalBounce, title="Sell at Upper Band", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.small)
+
+plotshape(showSignals and buySignalMidBounce, title="Buy at Middle", style=shape.triangleup, location=location.belowbar, color=color.new(color.lime, 0), size=size.tiny)
+plotshape(showSignals and sellSignalMidBounce, title="Sell at Middle", style=shape.triangledown, location=location.abovebar, color=color.new(color.orange, 0), size=size.tiny)
+
+plotshape(showBreakouts and breakoutUp, title="Breakout Up", text="BO↑", style=shape.diamond, location=location.abovebar, color=color.new(color.aqua, 0), textcolor=color.white, size=size.small)
+plotshape(showBreakouts and breakoutDown, title="Breakout Down", text="BO↓", style=shape.diamond, location=location.belowbar, color=color.new(color.fuchsia, 0), textcolor=color.white, size=size.small)
+
+// Squeeze indicator
+plotchar(showSqueeze and squeeze, title="Squeeze", char="■", location=location.top, color=color.orange, size=size.tiny)
+
+// Price position indicator
+plotshape(priceAboveUpper and not breakoutUp, title="Price > Upper", style=shape.xcross, location=location.abovebar, color=color.new(color.red, 30), size=size.tiny)
+plotshape(priceBelowLower and not breakoutDown, title="Price < Lower", style=shape.xcross, location=location.belowbar, color=color.new(color.green, 30), size=size.tiny)
+
+// Alerts
+alertcondition(buySignalBounce, title="Buy at Lower Band", message="BB: Price bounced from Lower Band - BUY Signal")
+alertcondition(sellSignalBounce, title="Sell at Upper Band", message="BB: Price rejected at Upper Band - SELL Signal")
+alertcondition(buySignalMidBounce, title="Buy at Middle Band", message="BB: Price crossed above Middle Band - Bullish")
+alertcondition(sellSignalMidBounce, title="Sell at Middle Band", message="BB: Price crossed below Middle Band - Bearish")
+alertcondition(breakoutUp, title="Breakout Up", message="BB: Breakout above Upper Band with high volume!")
+alertcondition(breakoutDown, title="Breakout Down", message="BB: Breakdown below Lower Band with high volume!")
+alertcondition(squeeze, title="Bollinger Squeeze", message="BB: Squeeze detected - Big move coming soon!")
+alertcondition(priceAboveUpper, title="Price Above Upper Band", message="BB: Price trading above Upper Band - Overbought zone")
+alertcondition(priceBelowLower, title="Price Below Lower Band", message="BB: Price trading below Lower Band - Oversold zone")

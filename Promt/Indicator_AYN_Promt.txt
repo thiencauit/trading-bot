@@ -1,0 +1,94 @@
+
+Bạn là chuyên gia Pine Script TradingView (v6). Viết indicator mới tái tạo đúng tinh thần “AYN Indicator by Snurk” với hệ thống lớp/checkbox bật tắt. Yêu cầu:
+
+Mục tiêu
+
+Tạo “dashboard chiến thuật” gồm: tín hiệu Buy/Sell (có nhãn Buy@ / Sell@), trend đa khung (Short/Mid/Long + bias 1D/1W), kênh giá động + Auto Fibonacci, EMA quan trọng (EMA99, EMA200), recolor nến / mũi tên UpTrend–DownTrend, hiển thị P/L tracking cơ bản.
+
+Cho phép bật/tắt từng lớp bằng checkbox input rõ ràng.
+
+Inputs (checkbox & params)
+
+Activate BuySell? (on/off)
+
+Activate BuySellLabels? (on/off)
+
+Activate Prices? (on/off) — hiển thị giá tại tín hiệu
+
+Activate Results? (on/off) — hiển thị P/L từ tín hiệu gần nhất
+
+Activate AutoFibonacci? (on/off)
+
+Activate ShortTrend? (on/off)
+
+Activate MidTrend? (on/off) — EMA99
+
+Activate LongTrend? (on/off) — EMA200
+
+Activate 1D SMA? (on/off) — default ON
+
+Activate 1W SMA? (on/off) — default OFF
+
+IndicatorLengths (int, min 0 max 100, default 10): độ nhạy tín hiệu tổng (nhỏ = nhanh/scalp, lớn = chậm/swing).
+
+src (source), tfD = “1D”, tfW = “1W”.
+
+Logic & Tính toán
+
+ShortTrend ribbon: baseline trung tâm + biên trên/dưới → fill tạo “mây xu hướng” xanh (bull) / đỏ (bear). Màu chính tham khảo: xanh lá #4CAF50 (bull), đỏ #FF5252 (bear). Fill alpha mờ (~90–98).
+
+MidTrend = EMA99, LongTrend = EMA200; tự recolor theo slope & vị trí giá (trên = xanh/bull, dưới = đỏ/bear).
+
+Bias 1D/1W: SMA/EMA đơn giản trên tfD/tfW (tùy chọn, mặc định dùng SMA) → vẽ line và hiển thị màu 0 (xanh) / màu 1 (tím) để thể hiện bullish/bearish.
+
+AutoFibonacci: Tự nhận swing gần nhất (đỉnh/đáy) → vẽ levels: 0 / 0.236 / 0.382 / 0.5 / 0.618 / 0.786 / 1, có thể fill các dải giữa baseline và levels (xanh khi bull, đỏ/tím khi bear).
+
+Bar color & Arrows: tô lại màu nến theo UpTrend/DownTrend (xanh neon #00E676 cho UpTrend, tím #E040FB cho DownTrend). Vẽ mốc BUY dưới bar và SELL trên bar (shape_xcross).
+
+Buy/Sell conditions (gần đúng, có tham số hóa bằng IndicatorLengths):
+
+BUY khi: ribbon chuyển xanh + close > EMA99 + momentum tích cực (ví dụ close > baseline ribbon & EMA99 dốc lên).
+
+SELL khi: ribbon chuyển đỏ + close < EMA99 + momentum tiêu cực.
+
+Labels: khi có tín hiệu và Activate BuySellLabels? → hiển thị “Buy@” / “Sell@” với giá.
+
+Prices / Results:
+
+Activate Prices?: hiển thị giá đường/level quan trọng bằng trackPrice=true.
+
+Activate Results?: tính P/L đơn giản từ tín hiệu gần nhất tới giá hiện tại (long nếu Buy gần nhất sau Sell, short nếu Sell gần nhất sau Buy). In nhỏ gọn trên chart.
+
+Plot & Style
+
+Dùng plot()/plotshape()/fill():
+
+Các line EMA trackPrice bật ở status line.
+
+Các fill đặt alpha thấp để không che nến.
+
+Tránh vượt max_lines/labels/boxes mặc định Pine (giữ hợp lý).
+
+Tất cả toggle tuân theo checkbox (ẩn/hiện linh hoạt).
+
+Kỹ thuật
+
+Pine Script v6, indicator(…, overlay=true, max_labels_count=500, max_lines_count=500, max_boxes_count=500).
+
+Đặt biến/tên plot rõ ràng: shortBase, shortHi, shortLo, ema99, ema200, fibo_618…
+
+Code sạch, có //@version=6, comment ngắn gọn.
+
+Không chèn dữ liệu bên ngoài; không repaint (tránh security() với lookahead=barmerge.lookahead_on).
+
+Kiểm thử tối thiểu
+
+Khi bật hết checkbox → thấy đầy đủ lớp: Buy/Sell, ribbon, EMA99/200, 1D/1W bias, AutoFibo, recolor nến.
+
+Tắt lần lượt từng checkbox → lớp tương ứng biến mất.
+
+IndicatorLengths nhỏ → tín hiệu dày hơn; lớn → thưa hơn.
+
+Đầu ra mong muốn: Trả về một file mã Pine v6 hoàn chỉnh (không giải thích dài dòng). Nếu phải chọn giữa SMA/EMA cho 1D/1W thì chọn SMA mặc định.
+
+(Các đặc tả được tổng hợp từ mô tả yêu cầu đã cung cấp.)

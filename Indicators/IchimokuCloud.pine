@@ -1,0 +1,94 @@
+//@version=6
+indicator(title="Ichimoku Cloud", shorttitle="Ichimoku", overlay=true)
+conversionPeriods = input.int(9, minval=1, title="Conversion Line Length")
+basePeriods = input.int(26, minval=1, title="Base Line Length")
+laggingSpan2Periods = input.int(52, minval=1, title="Leading Span B Length")
+displacement = input.int(26, minval=1, title="Lagging Span")
+
+// Signal settings
+showSignals = input.bool(true, "Show Buy/Sell Signals", group="Signal Settings")
+showTKCross = input.bool(true, "Show TK Cross Signals", group="Signal Settings")
+showCloudBreak = input.bool(true, "Show Cloud Break Signals", group="Signal Settings")
+
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+
+// Plot Ichimoku components
+plot(conversionLine, color=#2962FF, title="Conversion Line (Tenkan-sen)", linewidth=2)
+plot(baseLine, color=#B71C1C, title="Base Line (Kijun-sen)", linewidth=2)
+plot(close, offset = -displacement + 1, color=#43A047, title="Lagging Span (Chikou Span)")
+p1 = plot(leadLine1, offset = displacement - 1, color=#A5D6A7,
+	 title="Leading Span A (Senkou Span A)")
+p2 = plot(leadLine2, offset = displacement - 1, color=#EF9A9A,
+	 title="Leading Span B (Senkou Span B)")
+plot(leadLine1 > leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = "Kumo Cloud Upper Line", display = display.none) 
+plot(leadLine1 < leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = "Kumo Cloud Lower Line", display = display.none) 
+fill(p1, p2, color = leadLine1 > leadLine2 ? color.rgb(67, 160, 71, 90) : color.rgb(244, 67, 54, 90))
+
+// Calculate cloud for current bar (not displaced)
+cloudTop = math.max(leadLine1[displacement - 1], leadLine2[displacement - 1])
+cloudBottom = math.min(leadLine1[displacement - 1], leadLine2[displacement - 1])
+bullishCloud = leadLine1 > leadLine2
+
+// TK Cross signals (Tenkan/Kijun cross)
+tkCrossBullish = ta.crossover(conversionLine, baseLine)
+tkCrossBearish = ta.crossunder(conversionLine, baseLine)
+
+// Price vs Cloud signals
+priceAboveCloud = close > cloudTop
+priceBelowCloud = close < cloudBottom
+priceInCloud = close >= cloudBottom and close <= cloudTop
+
+// Cloud breakout signals
+cloudBreakBullish = ta.crossover(close, cloudTop)
+cloudBreakBearish = ta.crossunder(close, cloudBottom)
+
+// Chikou Span confirmation (Lagging Span above/below price from 26 bars ago)
+chikouAbovePrice = close > close[displacement]
+chikouBelowPrice = close < close[displacement]
+
+// Track position state to avoid duplicate signals
+var bool inBuyPosition = false
+var bool inSellPosition = false
+
+// BUY signal: Price crosses above cloud from below OR price above cloud and not in buy position
+buyCondition = (ta.crossover(close, cloudTop)) or (priceAboveCloud and not inBuyPosition)
+// SELL signal: Price crosses below cloud from above OR price below cloud and not in sell position
+sellCondition = (ta.crossunder(close, cloudBottom)) or (priceBelowCloud and not inSellPosition)
+
+// Update position state
+if buyCondition
+    inBuyPosition := true
+    inSellPosition := false
+    
+if sellCondition
+    inSellPosition := true
+    inBuyPosition := false
+
+// Reset position when price enters cloud (neutral zone)
+if priceInCloud
+    inBuyPosition := false
+    inSellPosition := false
+
+// Plot signals - Strong signals
+plotshape(showSignals and buyCondition, title="BUY Signal", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
+plotshape(showSignals and sellCondition, title="SELL Signal", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
+
+// TK Cross signals
+plotshape(showTKCross and tkCrossBullish, title="TK Cross Bullish", style=shape.triangleup, location=location.belowbar, color=color.new(color.blue, 0), size=size.tiny)
+plotshape(showTKCross and tkCrossBearish, title="TK Cross Bearish", style=shape.triangledown, location=location.abovebar, color=color.new(color.purple, 0), size=size.tiny)
+
+// Cloud break signals (for reference)
+plotshape(showCloudBreak and cloudBreakBullish, title="Cloud Break Up", style=shape.xcross, location=location.belowbar, color=color.new(color.aqua, 0), size=size.tiny)
+plotshape(showCloudBreak and cloudBreakBearish, title="Cloud Break Down", style=shape.xcross, location=location.abovebar, color=color.new(color.fuchsia, 0), size=size.tiny)
+
+// Alerts
+alertcondition(buyCondition, title="BUY Signal", message="Ichimoku: BUY - Price above cloud or crossed above cloud")
+alertcondition(sellCondition, title="SELL Signal", message="Ichimoku: SELL - Price below cloud or crossed below cloud")
+alertcondition(tkCrossBullish, title="TK Cross Bullish", message="Ichimoku: Tenkan crossed above Kijun - Bullish")
+alertcondition(tkCrossBearish, title="TK Cross Bearish", message="Ichimoku: Tenkan crossed below Kijun - Bearish")
+alertcondition(cloudBreakBullish, title="Cloud Break Bullish", message="Ichimoku: Price broke above cloud - Bullish")
+alertcondition(cloudBreakBearish, title="Cloud Break Bearish", message="Ichimoku: Price broke below cloud - Bearish")

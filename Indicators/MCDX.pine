@@ -1,0 +1,145 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © HUYNHDUCTAI
+
+//@version=6
+indicator("MCDX", overlay=false)
+
+// Các tham số đầu vào
+RSIBaseBanker = input.float(50, title="Banker Base", minval=0.1, maxval=100)
+RSIPeriodBanker = input.int(50, title="Banker RSI Period", minval=10, maxval=100)
+RSIBaseHotMoney = input.float(30, title="Hot Money RSI Base", minval=0.1, maxval=100)
+RSIPeriodHotMoney = input.int(40, title="Hot Money RSI Period", minval=10, maxval=100)
+SensitivityBanker = input.float(1.5, title="Sensitivity Banker", minval=0.1, maxval=10)
+SensitivityHotMoney = input.float(0.7, title="Sensitivity Hot Money", minval=0.1, maxval=10)
+bankerPeriodMA = input.int(10, title="MA Banker Period", minval=1, maxval=260)
+
+// Tính toán RSI Banker và RSI Hot Money
+_raw_RSI_Banker = SensitivityBanker * (ta.rsi(close, RSIPeriodBanker) - RSIBaseBanker)
+_raw_RSI_HotMoney = SensitivityHotMoney * (ta.rsi(close, RSIPeriodHotMoney) - RSIBaseHotMoney)
+
+// Giới hạn giá trị RSI
+RSI_Banker = math.min(math.max(_raw_RSI_Banker, 0), 20)
+RSI_HotMoney = math.min(math.max(_raw_RSI_HotMoney, 0), 20)
+
+// Tính đường trung bình động của Banker
+BankerMA = ta.sma(RSI_Banker, bankerPeriodMA)
+
+// Vẽ biểu đồ
+plot(20, color=color.green, style=plot.style_columns, title="Base")
+plot(20- RSI_HotMoney, color=color.green, style=plot.style_columns, title="Retailer")
+
+plot(RSI_HotMoney, color=color.yellow, style=plot.style_columns, title="Hot Money")
+plot(RSI_Banker, color=(RSI_Banker >= BankerMA ? color.new(color.red,20) : color.new(color.fuchsia,50)), style=plot.style_columns, title="Banker")
+plot(BankerMA, color=color.black, linewidth=1, title="Banker MA")
+
+// Các đường mức
+hline(15, "", color=color.rgb(173, 52, 203), linestyle=hline.style_dashed, linewidth=1)
+hline(10, "", color=color.rgb(173, 52, 203), linestyle=hline.style_dashed, linewidth=1)
+hline(5, "", color=color.rgb(173, 52, 203), linestyle=hline.style_dashed, linewidth=1)
+
+// ============ TÍN HIỆU BUY/SELL ============
+
+// Tham số khử nhiễu
+minBarsBetweenSignals = input.int(3, title="Số nến tối thiểu giữa các tín hiệu", minval=1, maxval=20)
+confirmBars = input.int(2, title="Số nến xác nhận xu hướng", minval=1, maxval=5)
+
+// Theo dõi trạng thái tín hiệu và mốc SELL/BUY
+var int lastSignal = 0  // 0 = chưa có tín hiệu, 1 = BUY, -1 = SELL
+var int lastSignalBar = 0  // Bar index của tín hiệu cuối cùng
+var float lastSellLevel = 0  // Mốc Hot Money khi SELL (5, 10, hoặc 15)
+var float lastBuyLevel = 0  // Mốc Hot Money khi BUY (5, 10, hoặc 15)
+
+// Phát hiện Hot Money cắt các mốc
+hotMoneyCrossUp5 = ta.crossover(RSI_HotMoney, 5)
+hotMoneyCrossUp10 = ta.crossover(RSI_HotMoney, 10)
+hotMoneyCrossUp15 = ta.crossover(RSI_HotMoney, 15)
+hotMoneyCrossDown15 = ta.crossunder(RSI_HotMoney, 15)
+hotMoneyCrossDown10 = ta.crossunder(RSI_HotMoney, 10)
+hotMoneyCrossDown5 = ta.crossunder(RSI_HotMoney, 5)
+
+// Điều kiện BUY cơ bản: Base < 5 và HotMoney đang dần tăng lên
+baseBelow5 = RSI_Banker < 5
+hotMoneyRising = RSI_HotMoney > RSI_HotMoney[1]
+hotMoneyAbove15 = RSI_HotMoney > 15
+
+// Xác nhận xu hướng tăng: Hot Money tăng liên tục trong N nến
+hotMoneyUpTrend = true
+for i = 0 to confirmBars - 1
+    if RSI_HotMoney[i] <= RSI_HotMoney[i + 1]
+        hotMoneyUpTrend := false
+        break
+
+// Điều kiện BUY: 
+// 1. BUY thông thường: Base < 5 và Hot Money tăng hoặc cắt lên các mốc
+// 2. BUY đảo chiều: Đã có SELL trước đó và Hot Money vượt lại mốc SELL đó
+buyConditionNormal = baseBelow5 and ((hotMoneyUpTrend and hotMoneyRising) or hotMoneyCrossUp5 or hotMoneyCrossUp10 or hotMoneyCrossUp15 or hotMoneyAbove15)
+buyConditionReverse = (lastSignal == -1) and ((lastSellLevel == 15 and hotMoneyCrossUp15) or (lastSellLevel == 10 and hotMoneyCrossUp10) or (lastSellLevel == 5 and hotMoneyCrossUp5))
+
+buyCondition = buyConditionNormal or buyConditionReverse
+
+// Điều kiện SELL cơ bản: Base < 15 và HotMoney cắt xuống
+baseBelow15 = RSI_Banker < 15
+
+// Xác nhận xu hướng giảm: Hot Money giảm liên tục trong N nến
+hotMoneyDownTrend = true
+for i = 0 to confirmBars - 1
+    if RSI_HotMoney[i] >= RSI_HotMoney[i + 1]
+        hotMoneyDownTrend := false
+        break
+
+// Điều kiện SELL:
+// 1. SELL thông thường: Base < 15 và Hot Money giảm hoặc cắt xuống các mốc
+// 2. SELL đảo chiều: Đã có BUY trước đó và Hot Money cắt xuống lại mốc BUY đó
+sellConditionNormal = baseBelow15 and ((hotMoneyDownTrend) or hotMoneyCrossDown15 or hotMoneyCrossDown10 or hotMoneyCrossDown5)
+sellConditionReverse = (lastSignal == 1) and ((lastBuyLevel == 15 and hotMoneyCrossDown15) or (lastBuyLevel == 10 and hotMoneyCrossDown10) or (lastBuyLevel == 5 and hotMoneyCrossDown5))
+
+sellCondition = sellConditionNormal or sellConditionReverse
+
+// Xác nhận tín hiệu trong 2 cây nến kế tiếp (chỉ áp dụng cho tín hiệu thông thường)
+buyConfirmationNormal = buyConditionNormal and buyConditionNormal[1]
+sellConfirmationNormal = sellConditionNormal and sellConditionNormal[1]
+
+// Tín hiệu đảo chiều không cần xác nhận 2 nến
+buyConfirmation = buyConfirmationNormal or buyConditionReverse
+sellConfirmation = sellConfirmationNormal or sellConditionReverse
+
+// Kiểm tra khoảng cách tối thiểu giữa các tín hiệu
+barsSinceLastSignal = bar_index - lastSignalBar
+enoughBarsPassed = barsSinceLastSignal >= minBarsBetweenSignals
+
+// Chỉ cho phép BUY nếu có xác nhận, tín hiệu trước đó không phải là BUY và đã đủ khoảng cách (hoặc là tín hiệu đảo chiều)
+buySignal = buyConfirmation and (lastSignal != 1) and (enoughBarsPassed or buyConditionReverse)
+
+// Chỉ cho phép SELL nếu có xác nhận, tín hiệu trước đó không phải là SELL và đã đủ khoảng cách (hoặc là tín hiệu đảo chiều)
+sellSignal = sellConfirmation and (lastSignal != -1) and (enoughBarsPassed or sellConditionReverse)
+
+// Cập nhật trạng thái tín hiệu và lưu mốc
+if buySignal
+    lastSignal := 1
+    lastSignalBar := bar_index
+    // Lưu mốc BUY để SELL có thể đảo chiều
+    if hotMoneyCrossUp15 or (RSI_HotMoney >= 15 and RSI_HotMoney[1] < 15)
+        lastBuyLevel := 15
+    else if hotMoneyCrossUp10 or (RSI_HotMoney >= 10 and RSI_HotMoney < 15)
+        lastBuyLevel := 10
+    else if hotMoneyCrossUp5 or (RSI_HotMoney >= 5 and RSI_HotMoney < 10)
+        lastBuyLevel := 5
+else if sellSignal
+    lastSignal := -1
+    lastSignalBar := bar_index
+    // Lưu mốc SELL để BUY có thể đảo chiều
+    if hotMoneyCrossDown15 or (RSI_HotMoney < 15 and RSI_HotMoney[1] >= 15)
+        lastSellLevel := 15
+    else if hotMoneyCrossDown10 or (RSI_HotMoney < 10 and RSI_HotMoney >= 5)
+        lastSellLevel := 10
+    else if hotMoneyCrossDown5 or (RSI_HotMoney < 5)
+        lastSellLevel := 5
+
+// Vẽ tín hiệu trên biểu đồ
+plotshape(buySignal, title="BUY Signal", location=location.bottom, color=color.new(color.lime, 0), style=shape.labelup, text="BUY", textcolor=color.white, size=size.normal)
+plotshape(sellSignal, title="SELL Signal", location=location.top, color=color.new(color.red, 0), style=shape.labeldown, text="SELL", textcolor=color.white, size=size.normal)
+
+// Alerts
+alertcondition(buySignal, title="MCDX Buy Signal", message="MCDX: BUY - Base < 5 và Hot Money đang tăng")
+alertcondition(sellSignal, title="MCDX Sell Signal", message="MCDX: SELL - Base < 15 và Hot Money cắt xuống")
+

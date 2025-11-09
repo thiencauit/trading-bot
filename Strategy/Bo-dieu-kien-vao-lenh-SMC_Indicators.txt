@@ -1,0 +1,136 @@
+BỘ ĐIỀU KIỆN VÀO LỆNH — SMC + INDICATORS + PRICE ACTION (TXT)
+Tác giả: lão đại (chuẩn hoá bởi ChatGPT)
+Ngày: 2025-11-05
+Khung khuyến nghị: Lọc xu hướng HTF = H4/D1; Kích hoạt LTF = M15–M5 (có thể xuống M1 cho trigger rất sớm).
+
+==================================================
+1) THAM SỐ MẶC ĐỊNH
+- EMA: 5 / 10 / 20
+- RSI(14), MFI(14), CMF(20)
+- MACD(12,26,9)
+- SuperTrend(10,3) (có thể 10,2.5–12,3 tuỳ thị trường)
+- Fibonacci: 38.2–61.8 (có thể mở rộng 78.6 cho bắt sớm)
+- MCDX (TradingView): ưu tiên big money (cột xanh cho Long, đỏ cho Short)
+
+==================================================
+2) LỌC XU HƯỚNG (HTF FILTER — BẮT BUỘC)
+BULL BIAS nếu TẤT CẢ đúng:
+  1) EMA5 > EMA10 > EMA20 (dải không quá co cụm)
+  2) MACD histogram ≥ 0 hoặc MACD > Signal
+  3) RSI > 50 (tốt nhất 55–65), MFI > 50, CMF > 0
+  4) SuperTrend bullish (giá nằm trên ST)
+  5) SMC: đã có BOS lên hoặc CHoCH bullish
+
+BEAR BIAS: đảo dấu toàn bộ (EMA5<10<20, MACD ≤ 0, RSI<50, MFI<50, CMF<0, ST bearish, BOS/CHoCH xuống).
+
+Sideways: nếu 1–2 điều kiện chưa khớp (RSI≈50, CMF≈0) → đứng ngoài hoặc giảm size.
+
+==================================================
+3) VÙNG/SETUP SMC ĐỂ VÀO LỆNH
+LONG (sau BOS lên):
+  - Chọn Bullish OB (nến giảm cuối trước cú phá đỉnh)
+  - Kẻ Fibo lên impulse tạo BOS; ưu tiên 0.5–0.618 trùng OB
+  - Nếu có FVG: ưu tiên đợi giá fill 50–100% FVG trong phạm vi OB
+  - Volume/PA: impulse tăng có volume > MA20-volume; pullback về OB giảm volume, xuất hiện rút râu dưới/wash-out nhỏ
+
+SHORT (sau BOS xuống):
+  - Bearish OB (nến tăng cuối trước cú phá đáy)
+  - Fibo 0.5–0.618 trùng OB; có FVG thì đợi fill trong/near OB
+  - Volume/PA: impulse giảm vol mạnh; pullback lên co vol, rút râu trên/false-break đỉnh
+
+==================================================
+4) TRIGGER VÀO LỆNH (LTF)
+LONG TRIGGER (không cần đợi giá chạy xa):
+  - Chọn ≥ 3 điều kiện sau ngay trong vùng OB/FVG/Fibo:
+    1) CHoCH bullish LTF (phá đỉnh nhỏ gần nhất, tạo HL)
+    2) RSI vượt 50 HOẶC có bullish divergence từ vùng thấp
+    3) MFI > 50 HOẶC bullish divergence
+    4) CMF ≥ 0 hoặc dốc lên 2–3 nến
+    5) MACD cross up hoặc histogram âm → dương tại vùng
+    6) SuperTrend LTF flip bullish
+    7) MCDX: cột xanh nhú/áp đảo
+  - Entry: limit tại biên OB (ưu tiên 0.5–0.618) hoặc sau nến xác nhận
+  - SL: dưới đáy OB (hoặc dưới 100% FVG fill) + buffer
+  - TP: TP1=1R/mid-FVG; TP2=2R/đỉnh swing; TP3=3R/vùng cung kế tiếp
+  - Trailing: SuperTrend/EMA20 LTF
+
+SHORT TRIGGER (đảo dấu quy tắc trên):
+  - Entry tại biên OB/FVG (0.5–0.618) hoặc nến xác nhận
+  - SL trên đỉnh OB; TP bậc thang 1R / 2R / 3R
+  - Trailing theo SuperTrend/EMA20
+
+==================================================
+5) HUỶ SETUP / THOÁT SỚM
+- Đóng cửa phá OB ngược chiều (invalidate)
+- Xuất hiện CHoCH ngược ngay sau entry
+- SuperTrend flip ngược + MACD/RSI xác nhận (MACD cross ngược, RSI qua 50)
+- CMF xuyên qua 0 chống lại vị thế + MCDX đổi màu áp đảo
+- News/volume dị thường phá cấu trúc
+
+==================================================
+6) CHECKLIST ĐIỂM (0–10) — VÀO KHI ≥7
+1) EMA 5>10>20 (Long) / 5<10<20 (Short) — HTF
+2) MACD thuận chiều (≥0 Long, ≤0 Short)
+3) RSI thuận (Long>50, Short<50)
+4) MFI thuận (Long>50, Short<50)
+5) CMF thuận (Long>0, Short<0)
+6) SuperTrend HTF cùng chiều
+7) Có BOS theo chiều định vào
+8) OB trùng 0.5–0.618 Fibo
+9) Có FVG fill trong vùng vào
+10) MCDX thuận chiều tại trigger
+
+==================================================
+7) BẮT SỚM Ở VÙNG QUÁ MUA/QUÁ BÁN (KHÔNG CẦN ĐỢI RSI/MFI >50)
+A) LONG SỚM (quá bán, counter-pullback trong bull bias/range)
+- Bối cảnh: HTF còn bullish (ít nhất giá trên EMA20 hoặc ST bullish)
+- Điểm chờ: hồi về Bullish OB trùng 0.618–0.786; có FVG fill; quét thanh khoản đáy, nến rút râu dưới
+- Kích hoạt (chọn ≥3):
+  1) RSI ≤ 30 (hoặc bottom-10%/100 nến) + bullish divergence
+  2) MFI ≤ 20 + bullish divergence
+  3) CMF âm nhưng dốc lên 2–3 nến
+  4) MACD “curl up”/histogram âm nông dần (HL rising)
+  5) Nến pin/engulf ngay trong OB + volume > MA20-volume
+  6) MCDX: xanh nhú tại/ sau nến tín hiệu
+- Entry: limit 0.618–0.786 trong OB hoặc market sau nến tín hiệu M5–M15
+- SL: dưới đáy sweep/biên OB + buffer
+- TP: TP1=mid FVG hoặc 1R (dời BE); TP2=đỉnh swing/2R; TP3=3R
+- Trailing: EMA20/SuperTrend LTF
+- Biến thể aggressive: RSI≤25 & MFI≤15 + râu dài + volume spike (SL rộng hơn 10–15%)
+
+B) SHORT SỚM (quá mua, counter-pullback trong bear bias/range)
+- Bối cảnh: HTF còn bearish (giá dưới EMA20 hoặc ST bearish)
+- Điểm chờ: pullback lên Bearish OB 0.618–0.786; FVG fill; quét đỉnh, rút râu trên
+- Kích hoạt (chọn ≥3):
+  1) RSI ≥ 70 (hoặc top-10%) + bearish divergence
+  2) MFI ≥ 80 + bearish divergence
+  3) CMF dương nhưng dốc xuống 2–3 nến
+  4) MACD “curl down”/histogram dương nông dần (LH falling)
+  5) Bearish engulfing/shooting star trong OB + volume > MA20-volume
+  6) MCDX: đỏ áp đảo/nhú mạnh
+- Entry: limit 0.618–0.786 trong OB hoặc market sau nến tín hiệu
+- SL: trên đỉnh sweep/biên OB + buffer
+- TP: TP1=mid FVG/1R; TP2=đáy swing/2R; TP3=3R
+- Trailing: EMA20/SuperTrend LTF
+- Biến thể aggressive: RSI≥75 & MFI≥85 + râu dài + volume spike (SL rộng hơn)
+
+MẸO BẮT SỚM MÀ KHÔNG LIỀU MÙ
+- Dùng “percentile zones” (RSI/MFI top/bottom 10% của 100–200 nến) thay vì ngưỡng cố định
+- 2-stage trigger: (1) chạm cực trị + confluence OB/FVG/Fibo → (2) CHoCH M1–M5 rồi mới khớp lệnh
+- Ladder entries: chia 0.5 / 0.618 / 0.786 trong OB để tối ưu fill
+- Volume logic: impulse mở rộng vol; pullback co vol; nến tín hiệu cần vol re-expand
+- Bỏ lệnh nếu OB bị xuyên đóng cửa, CHoCH ngược xuất hiện, CMF/MCDX đảo áp đảo
+
+==================================================
+8) QUẢN TRỊ RỦI RO
+- Rủi ro 0.5–1%/lệnh; không tăng size khi tín hiệu yếu (<7 điểm)
+- Tránh mua khi RSI>70 hoặc bán khi RSI<30 nếu không có pullback/OB rõ
+- Ưu tiên confluence ≥ 3 nguồn (SMC + indicator + volume)
+- Thị trường rất trend: có thể skip FVG nếu pullback chỉ chạm EMA20 + OB mỏng và momentum cực mạnh
+
+==================================================
+9) “CÂU THẦN CHÚ” TÓM GỌN
+Lọc HTF → Chờ BOS → Kéo Fibo → Tìm OB trùng 0.5–0.618 (+FVG) →
+Trigger LTF bằng CHoCH + (MACD curl/cross) + (RSI/MFI/divergence) + CMF cùng dấu + MCDX ủng hộ →
+Vào ở OB/FVG, SL ngoài OB, TP bậc thang 1R/2R/3R, trail theo ST/EMA20 →
+Huỷ nếu invalidate OB/flip cấu trúc hoặc dòng tiền đảo mạnh.

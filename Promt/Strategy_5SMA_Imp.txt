@@ -1,0 +1,270 @@
+//@version=6
+strategy("Super MA Strategy (v6) – 5 SMA (5/10/20/50/100)", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.05, calc_on_order_fills=true, calc_on_every_tick=false, pyramiding=0)
+
+// ===========================
+// 1) INPUTS & CẤU HÌNH
+// ===========================
+groupMA      = "Cấu hình SMA"
+len5         = input.int(5,   "SMA5",   group=groupMA, minval=1)
+len10        = input.int(10,  "SMA10",  group=groupMA, minval=1)
+len20        = input.int(20,  "SMA20",  group=groupMA, minval=1)
+len50        = input.int(50,  "SMA50",  group=groupMA, minval=1)
+len100       = input.int(100, "SMA100", group=groupMA, minval=1)
+
+groupSlope   = "Độ dốc & Đi ngang"
+slopeLen     = input.int(3, "Slope lookback (bars)", group=groupSlope, minval=1)
+flatThresh   = input.float(0.05, "Ngưỡng 'đi ngang' (%/bar)", group=groupSlope, step=0.01, minval=0.0)
+
+groupVol     = "Khối lượng (Volume lớn)"
+volLen       = input.int(20, "Vol SMA length", group=groupVol, minval=1)
+volMult      = input.float(1.5, "Hệ số SMA * volMult", group=groupVol, step=0.1, minval=0.1)
+usePctile    = input.bool(false, "Dùng Percentile thay vì SMA?", group=groupVol)
+volPct       = input.float(80.0, "Percentile (%)", group=groupVol, minval=50, maxval=99.9, step=0.1)
+
+groupNoise   = "Bộ lọc nhiễu & Xác nhận"
+confirmBars  = input.int(1, "Điều kiện duy trì N bar", group=groupNoise, minval=1, maxval=5)
+useIntrabar  = input.bool(false, "Cho phép tín hiệu intrabar?", group=groupNoise)
+
+groupUI      = "Hiển thị"
+showMA5      = input.bool(true,  "Hiện SMA5", group=groupUI)
+showMA10     = input.bool(true,  "Hiện SMA10", group=groupUI)
+showMA20     = input.bool(true,  "Hiện SMA20", group=groupUI)
+showMA50     = input.bool(true,  "Hiện SMA50", group=groupUI)
+showMA100    = input.bool(true,  "Hiện SMA100", group=groupUI)
+showLabels   = input.bool(true,  "Hiện nhãn/mũi tên", group=groupUI)
+showBG       = input.bool(true,  "Tô nền theo trend", group=groupUI)
+showTable    = input.bool(true,  "Hiện bảng trạng thái", group=groupUI)
+
+groupAlerts  = "Bật/tắt Alert từng loại"
+enBuyEarly5  = input.bool(true,  "BUY_EARLY_SMA5", group=groupAlerts)
+enBuyEarly10 = input.bool(true,  "BUY_EARLY_SMA10", group=groupAlerts)
+enBuyRev20   = input.bool(true,  "BUY_REVERSAL_SMA20", group=groupAlerts)
+enBuyCross5u10 = input.bool(true,"BUY_CROSS_MA5_OVER_MA10", group=groupAlerts)
+enTrendUpCfm = input.bool(true,  "TREND_UP_CONFIRMED", group=groupAlerts)
+enExitLongFB = input.bool(true,  "EXIT_LONG_FAIL_BREAK_SMA20", group=groupAlerts)
+enSellEarly5 = input.bool(true,  "SELL_EARLY_SMA5", group=groupAlerts)
+enSellEarly10= input.bool(true,  "SELL_EARLY_SMA10", group=groupAlerts)
+enSellRev20  = input.bool(true,  "SELL_REVERSAL_SMA20", group=groupAlerts)
+enSellCross5d10 = input.bool(true,"SELL_CROSS_MA5_UNDER_MA10", group=groupAlerts)
+enTrendDnCfm = input.bool(true,  "TREND_DOWN_CONFIRMED", group=groupAlerts)
+enExitShortFB= input.bool(true,  "EXIT_SHORT_FAIL_BREAK_SMA20", group=groupAlerts)
+
+groupFail    = "Quy tắc 'không phá' SMA20"
+failBreakBars= input.int(3, "Số phiên kiểm (2–3)", group=groupFail, minval=2, maxval=5)
+touchTolPct  = input.float(0.2, "Sai số coi như 'chạm' SMA20 (%)", group=groupFail, minval=0, step=0.05)
+
+groupStrat   = "Vào/ra lệnh – Chiến lược"
+allowEarly   = input.bool(false, "Cho phép vào lệnh với Early (rủi ro cao)?", group=groupStrat)
+slPct        = input.float(2.0, "Stop Loss (%)", group=groupStrat, minval=0.0, step=0.1)
+tpPct        = input.float(4.0, "Take Profit (%)", group=groupStrat, minval=0.0, step=0.1)
+trailPct     = input.float(0.0, "Trailing Stop (%) (0 = tắt)", group=groupStrat, minval=0.0, step=0.1)
+
+// ===========================
+// 2) TÍNH TOÁN MA & SLOPE
+// ===========================
+sma5   = ta.ema(close, len5)
+sma10  = ta.ema(close, len10)
+sma20  = ta.ema(close, len20)
+sma50  = ta.ema(close, len50)
+sma100 = ta.ema(close, len100)
+
+f_slope(ma) =>
+    prev = nz(ma[slopeLen])
+    prev == 0.0 ? 0.0 : (ma - prev) / prev * 100.0 / slopeLen
+
+s5  = f_slope(sma5)
+s10 = f_slope(sma10)
+s20 = f_slope(sma20)
+s50 = f_slope(sma50)
+s100= f_slope(sma100)
+
+isSlopeUp(maSlope)   => maSlope >  0
+isSlopeDown(maSlope) => maSlope <  0
+isFlat(maSlope)      => math.abs(maSlope) < flatThresh
+
+// ===========================
+// 3) VOLUME LỚN
+// ===========================
+volIsBig_sma = volume > ta.sma(volume, volLen) * volMult
+volThreshPct = ta.percentile_linear_interpolation(volume, volLen, volPct)
+volIsBig_pct = volume >= volThreshPct
+volIsBig     = usePctile ? volIsBig_pct : volIsBig_sma
+
+// ===========================
+// 4) KHUNG TREND (Bull/Bear/Neutral)
+// ===========================
+bull = (sma10 >= sma20) and (isSlopeUp(s10) or isSlopeUp(s20))
+bear = (sma10 <= sma20) and (isSlopeDown(s10) or isSlopeDown(s20))
+neutral = not bull and not bear
+trendState = bull ? 1 : bear ? -1 : 0
+
+// Nền màu (global scope)
+bgCol = showBG ? (bull ? color.new(color.teal, 90) : bear ? color.new(color.red, 90) : na) : na
+bgcolor(bgCol)
+
+// ===========================
+// 5) HÀM PHỤ
+// ===========================
+crossUp(src, ma)   => ta.crossover(src, ma)
+crossDown(src, ma) => ta.crossunder(src, ma)
+holdN(cond, n)     => ta.barssince(not cond) >= n - 1
+f_dir(s) =>
+    s > flatThresh ? "↑" : s < -flatThresh ? "↓" : "→"
+
+// ===========================
+// 6) 'KHÔNG PHÁ' SMA20 TRONG N PHIÊN
+// ===========================
+failBreakAtMA20(isUp, n) =>
+    tol = touchTolPct / 100.0
+    touched = ta.lowest(math.abs(close - sma20), n) / nz(sma20) <= tol
+    if isUp
+        noBreak = ta.highest(close, n) <= sma20
+        touched and noBreak
+    else
+        noBreak = ta.lowest(close, n) >= sma20
+        touched and noBreak
+
+// ===========================
+// 7) TÍN HIỆU (bar đóng)
+// ===========================
+barOK = useIntrabar ? true : barstate.isconfirmed
+
+// Early BUY (trend giảm)
+buyEarly5  = barOK and bear and enBuyEarly5  and crossUp(close, sma5)  and volIsBig and isSlopeUp(s10) and isSlopeUp(s20)
+buyEarly10 = barOK and bear and enBuyEarly10 and crossUp(close, sma10) and volIsBig
+// BUY reversal/cross
+buyRev20      = barOK and enBuyRev20     and crossUp(close, sma20) and volIsBig
+buyCross5u10  = barOK and enBuyCross5u10 and ta.crossover(sma5, sma10)
+trendUpConfirmed = barOK and enTrendUpCfm and ta.crossover(sma10, sma20) and (sma5 > sma10) and (isFlat(s20) or isSlopeUp(s20))
+// EXIT long
+exitLongFB = barOK and enExitLongFB and failBreakAtMA20(true, failBreakBars)
+
+// Early SELL (trend tăng)
+sellEarly5  = barOK and bull and enSellEarly5  and crossDown(close, sma5)  and volIsBig and isSlopeDown(s10) and isSlopeDown(s20)
+sellEarly10 = barOK and bull and enSellEarly10 and crossDown(close, sma10) and volIsBig
+// SELL reversal/cross
+sellRev20       = barOK and enSellRev20     and crossDown(close, sma20) and volIsBig
+sellCross5d10   = barOK and enSellCross5d10 and ta.crossunder(sma5, sma10)
+trendDnConfirmed= barOK and enTrendDnCfm    and ta.crossunder(sma10, sma20) and (sma5 < sma10) and (isFlat(s20) or isSlopeDown(s20))
+// EXIT short
+exitShortFB = barOK and enExitShortFB and failBreakAtMA20(false, failBreakBars)
+
+// Ưu tiên tín hiệu
+sigBuy =
+     trendUpConfirmed ? "TREND_UP_CONFIRMED" :
+     buyRev20         ? "BUY_REVERSAL_SMA20" :
+     buyCross5u10     ? "BUY_CROSS_MA5_OVER_MA10" :
+     (allowEarly and (buyEarly5 or buyEarly10)) ? (buyEarly5 ? "BUY_EARLY_SMA5" : "BUY_EARLY_SMA10") : ""
+
+sigSell =
+     trendDnConfirmed ? "TREND_DOWN_CONFIRMED" :
+     sellRev20        ? "SELL_REVERSAL_SMA20" :
+     sellCross5d10    ? "SELL_CROSS_MA5_UNDER_MA10" :
+     (allowEarly and (sellEarly5 or sellEarly10)) ? (sellEarly5 ? "SELL_EARLY_SMA5" : "SELL_EARLY_SMA10") : ""
+
+// ===========================
+// 8) VẼ 5 MA & NHÃN
+// ===========================
+col5   = color.new(color.green, 0)
+col10  = color.new(color.blue,  0)
+col20  = color.new(color.orange,0)
+col50  = color.new(color.fuchsia, 0)
+col100 = color.new(color.gray,  0)
+
+plot(showMA5   ? sma5   : na, "SMA5",   col5,   1)
+plot(showMA10  ? sma10  : na, "SMA10",  col10,  1)
+plot(showMA20  ? sma20  : na, "SMA20",  col20,  2)
+plot(showMA50  ? sma50  : na, "SMA50",  col50,  1)
+plot(showMA100 ? sma100 : na, "SMA100", col100, 1)
+
+plotshape(showLabels and (buyEarly5 or buyEarly10), title="Early Buy", style=shape.arrowup, location=location.belowbar, color=color.new(color.lime, 0), size=size.tiny, text="Mua sớm")
+plotshape(showLabels and (sellEarly5 or sellEarly10), title="Early Sell", style=shape.arrowdown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny, text="Bán sớm")
+plotshape(showLabels and buyRev20,   title="Buy Reversal @SMA20", style=shape.triangleup,   location=location.belowbar, color=color.new(color.blue, 0),  size=size.small, text="Mua đảo chiều @SMA20")
+plotshape(showLabels and sellRev20,  title="Sell Reversal @SMA20", style=shape.triangledown, location=location.abovebar, color=color.new(color.orange, 0), size=size.small, text="Bán đảo chiều @SMA20")
+plotshape(showLabels and buyCross5u10,  title="MA5↑MA10", style=shape.circle, location=location.belowbar, color=color.new(color.teal, 0), size=size.tiny, text="MA5 cắt lên MA10")
+plotshape(showLabels and sellCross5d10, title="MA5↓MA10", style=shape.circle, location=location.abovebar, color=color.new(color.maroon, 0), size=size.tiny, text="MA5 cắt xuống MA10")
+plotshape(showLabels and trendUpConfirmed,  title="Trend Up Confirmed",  style=shape.labelup,   location=location.belowbar, color=color.new(color.teal, 0), size=size.tiny, text="Xác nhận trend tăng")
+plotshape(showLabels and trendDnConfirmed,  title="Trend Down Confirmed",style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0),  size=size.tiny, text="Xác nhận trend giảm")
+plotshape(showLabels and exitLongFB,  title="Exit Long (Fail Break SMA20)",  style=shape.cross, location=location.abovebar, color=color.new(color.orange, 0), size=size.tiny, text="Bán lệnh Mua")
+plotshape(showLabels and exitShortFB, title="Exit Short (Fail Break SMA20)", style=shape.cross, location=location.belowbar, color=color.new(color.lime, 0),   size=size.tiny, text="Mua lại lệnh Bán")
+
+// ===========================
+// 9) BẢNG TRẠNG THÁI (TABLE)
+// ===========================
+var table t = na
+if showTable
+    if na(t)
+        t := table.new(position.top_right, 4, 4, frame_width=1)
+    if barstate.islast
+        table.cell(t, 0, 0, "Trend", text_color=color.white, bgcolor=color.new(color.black, 0))
+        table.cell(t, 1, 0, bull ? "Bull" : bear ? "Bear" : "Neutral", bgcolor=bull?color.new(color.teal,80):bear?color.new(color.red,80):color.new(color.gray,85))
+
+        table.cell(t, 0, 1, "SMA5")
+        table.cell(t, 1, 1, f_dir(s5))
+        table.cell(t, 2, 1, "SMA10")
+        table.cell(t, 3, 1, f_dir(s10))
+        table.cell(t, 0, 2, "SMA20")
+        table.cell(t, 1, 2, f_dir(s20))
+        table.cell(t, 2, 2, "SMA50")
+        table.cell(t, 3, 2, f_dir(s50))
+        table.cell(t, 0, 3, "Vol")
+        table.cell(t, 1, 3, volIsBig ? "Big" : "Normal", bgcolor=volIsBig?color.new(color.green,80):na)
+        table.cell(t, 2, 3, "Last")
+        lastSig = sigBuy != "" ? sigBuy : sigSell != "" ? sigSell : (exitLongFB ? "EXIT_LONG_FAIL_BREAK_SMA20" : exitShortFB ? "EXIT_SHORT_FAIL_BREAK_SMA20" : "-")
+        table.cell(t, 3, 3, lastSig)
+
+// ===========================
+// 10) ALERTCONDITIONS
+// ===========================
+alertcondition(buyEarly5, "BUY_EARLY_SMA5", "Giá cắt lên SMA5 với volume lớn (Mua sớm).")
+alertcondition(buyEarly10,"BUY_EARLY_SMA10","Giá cắt lên SMA10 với volume lớn (Mua sớm).")
+alertcondition(buyRev20,  "BUY_REVERSAL_SMA20", "Giá cắt lên SMA20 với volume lớn (Mua đảo chiều).")
+alertcondition(buyCross5u10,"BUY_CROSS_MA5_OVER_MA10","SMA5 cắt lên SMA10.")
+alertcondition(trendUpConfirmed,"TREND_UP_CONFIRMED","SMA10 cắt lên SMA20 + xếp chồng tăng.")
+alertcondition(exitLongFB,"EXIT_LONG_FAIL_BREAK_SMA20","Không phá lên SMA20 trong N phiên (thoát Long).")
+
+alertcondition(sellEarly5,"SELL_EARLY_SMA5","Giá cắt xuống SMA5 với volume lớn (Bán sớm).")
+alertcondition(sellEarly10,"SELL_EARLY_SMA10","Giá cắt xuống SMA10 với volume lớn (Bán sớm).")
+alertcondition(sellRev20,"SELL_REVERSAL_SMA20","Giá cắt xuống SMA20 với volume lớn (Bán đảo chiều).")
+alertcondition(sellCross5d10,"SELL_CROSS_MA5_UNDER_MA10","SMA5 cắt xuống SMA10.")
+alertcondition(trendDnConfirmed,"TREND_DOWN_CONFIRMED","SMA10 cắt xuống SMA20 + xếp chồng giảm.")
+alertcondition(exitShortFB,"EXIT_SHORT_FAIL_BREAK_SMA20","Không phá xuống SMA20 trong N phiên (thoát Short).")
+
+// ===========================
+// 11) QUY TẮC VÀO/RA LỆNH
+// ===========================
+inLong  = strategy.position_size > 0
+inShort = strategy.position_size < 0
+
+doLong  = (trendUpConfirmed or buyRev20 or (allowEarly and (buyEarly5 or buyEarly10)))
+doShort = (trendDnConfirmed or sellRev20 or (allowEarly and (sellEarly5 or sellEarly10)))
+
+exitLong  = exitLongFB or trendDnConfirmed or sellRev20
+exitShort = exitShortFB or trendUpConfirmed or buyRev20
+
+useStops   = (slPct > 0 or tpPct > 0 or trailPct > 0)
+slPrice    = strategy.position_avg_price * (inLong ? (1 - slPct/100.0) : (1 + slPct/100.0))
+tpPrice    = strategy.position_avg_price * (inLong ? (1 + tpPct/100.0) : (1 - tpPct/100.0))
+trailOffset= trailPct > 0 ? strategy.position_avg_price * trailPct/100.0 : na
+
+if useStops and inLong
+    strategy.exit("L-Exit", "Long", stop=slPct>0? slPrice : na, limit=tpPct>0? tpPrice : na, trail_offset=trailOffset)
+
+if useStops and inShort
+    strategy.exit("S-Exit", "Short", stop=slPct>0? slPrice : na, limit=tpPct>0? tpPrice : na, trail_offset=trailOffset)
+
+if doLong and not inLong
+    if inShort
+        strategy.close("Short", comment="Flip to Long")
+    strategy.entry("Long", strategy.long, comment=sigBuy != "" ? sigBuy : "Long")
+
+if doShort and not inShort
+    if inLong
+        strategy.close("Long", comment="Flip to Short")
+    strategy.entry("Short", strategy.short, comment=sigSell != "" ? sigSell : "Short")
+
+if inLong and exitLong
+    strategy.close("Long", comment= exitLongFB ? "Exit Long: FailBreak@SMA20" : "Exit Long: Sell Confirm")
+
+if inShort and exitShort
+    strategy.close("Short", comment= exitShortFB ? "Exit Short: FailBreak@SMA20" : "Exit Short: Buy Confirm")

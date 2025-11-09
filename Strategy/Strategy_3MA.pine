@@ -1,0 +1,85 @@
+//@version=5
+strategy("Triple MA 5-10-20 Strategy Ver2", overlay=true,process_orders_on_close = true,calc_on_order_fills = false)
+
+// === Inputs ===
+lenFast  = input.int(5,  "Fast MA (MA5)",  minval = 1)
+lenMid   = input.int(10, "Mid MA (MA10)",  minval = 1)
+lenSlow  = input.int(20, "Slow MA (MA20)", minval = 1)
+src      = input.source(close, "Source")
+useEMA   = input.bool(false, "Use EMA instead of SMA?")
+
+dev_abs = close - open
+dev_pct = (close - open) / open * 100.0
+vol_avg20 = ta.sma(volume, 20) 
+isVolumeOver = volume>=vol_avg20
+diff_reached = dev_pct >= 2
+
+// === MA calculations ===
+maFast = useEMA ? ta.ema(src, lenFast) : ta.sma(src, lenFast)
+maMid  = useEMA ? ta.ema(src, lenMid)  : ta.sma(src, lenMid)
+maSlow = useEMA ? ta.ema(src, lenSlow) : ta.sma(src, lenSlow)
+smaSlow = ta.sma(src, lenSlow)
+smaFast = ta.sma(src, lenFast)
+
+// === long conditions ===
+priceCrossOverMAFast = ta.crossover(src,maFast)
+priceCrossOverMAMid = ta.crossover(src,maMid)
+priceCrossOverMASlow = ta.crossover(src,maSlow)
+priceCrossOverAllMA = priceCrossOverMAFast and priceCrossOverMAMid and priceCrossOverMASlow
+
+maFastOverMAMid = maFast>=maMid
+maMidOverMASlow = maMid>=maSlow
+
+maFastCrossOverMAMid = ta.crossover(maFast,maMid)
+maMidCrossOverMASlow = ta.crossover(maMid,maSlow)
+maFastCrossOverMASlow = ta.crossover(maFast,maSlow)
+
+maFastOverAverageMAFast = maFast > maFast[3]
+
+// === short conditions ===
+priceCrossUnderMAFast = ta.crossunder(src,maFast)
+priceCrossUnderMAMid = ta.crossunder(src,maMid)
+priceCrossUnderMASlow = ta.crossunder(src,maSlow)
+priceCrossUnderAllMA = priceCrossUnderMAFast and priceCrossUnderMAMid and priceCrossUnderMASlow
+priceCrossUnderSMASlow = ta.crossunder(src,smaSlow)
+priceUnderSMASlow = src < smaSlow
+
+maFastUnderMAMid = maFast<maMid
+maMidUnderMASlow = maMid<maSlow
+
+maFastCrossUnderMAMid = ta.crossunder(maFast,maMid)
+maMidCrossUnderMASlow = ta.crossunder(maMid,maSlow)
+priceUnderMaMidAndMaFastCrossUnderMaMid = (maFastCrossUnderMAMid) or (priceCrossUnderMAFast and priceCrossUnderMAMid)
+    
+isLong =  (priceCrossOverMAMid or maFastCrossOverMAMid or maMidCrossOverMASlow or maFastCrossOverMASlow) and maFastOverAverageMAFast
+isShort = (priceCrossUnderSMASlow or priceUnderSMASlow or priceUnderMaMidAndMaFastCrossUnderMaMid)
+// === State tracking (luân phiên) ===
+// inLong = true  -> đang giữ lệnh Long
+// inLong = false -> đang flat (không lệnh)
+var bool inLong = false
+
+// Chỉ cho phép BUY nếu đang flat
+buySignal  = isLong and (inLong == false) 
+
+// Chỉ cho phép SELL nếu đang giữ lệnh
+sellSignal = isShort and (inLong == true)
+
+
+// === Orders ===
+if (buySignal)
+    strategy.entry("Long", strategy.long)
+    inLong := true
+
+if (sellSignal)
+    strategy.close("Long")
+    inLong := false
+
+// === Plot MAs ===
+plot(maFast, "MA Fast (5)",  color=color.yellow,  linewidth=1)
+plot(maMid,  "MA Mid (10)",  color=color.orange,  linewidth=1)
+plot(maSlow, "MA Slow (20)", color=color.red,     linewidth=1)
+
+// === Plot Buy/Sell markers ===
+// chỉ plot marker khi tín hiệu thực sự hợp lệ (sau lọc luân phiên)
+plotshape(buySignal,  title="BUY",  text="BUY",  style=shape.labelup,   location=location.belowbar, color=color.lime,  size=size.tiny, textcolor=color.black)
+plotshape(sellSignal, title="SELL", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.red,   size=size.tiny, textcolor=color.white)

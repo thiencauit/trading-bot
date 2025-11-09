@@ -1,0 +1,78 @@
+//@version=6
+indicator(title="Chaikin Money Flow", shorttitle="CMF", format=format.price, precision=2, timeframe="", timeframe_gaps=true)
+var cumVol = 0.
+cumVol += nz(volume)
+if barstate.islast and cumVol == 0
+    runtime.error("No volume is provided by the data vendor.")
+length = input.int(20, minval=1)
+ad = close==high and close==low or high==low ? 0 : ((2*close-low-high)/(high-low))*volume
+mf = math.sum(ad, length) / math.sum(volume, length)
+
+// Detect peaks and valleys
+pivot_lookback = input.int(5, "Pivot Lookback", minval=1)
+
+// Find pivot highs (peaks) and pivot lows (valleys)
+pivotHigh = ta.pivothigh(mf, pivot_lookback, pivot_lookback)
+pivotLow = ta.pivotlow(mf, pivot_lookback, pivot_lookback)
+
+// Store previous peaks and valleys
+var float lastPeakValue = na
+var float prevPeakValue = na
+var float lastValleyValue = na
+var float prevValleyValue = na
+
+// Update peak values
+if not na(pivotHigh)
+    prevPeakValue := lastPeakValue
+    lastPeakValue := pivotHigh
+
+// Update valley values
+if not na(pivotLow)
+    prevValleyValue := lastValleyValue
+    lastValleyValue := pivotLow
+
+// Detect crossovers
+crossAboveZero = ta.crossover(mf, 0)
+crossBelowZero = ta.crossunder(mf, 0)
+
+// Lower high: current peak is lower than previous peak
+lowerHigh = not na(lastPeakValue) and not na(prevPeakValue) and lastPeakValue < prevPeakValue
+
+// Higher low: current valley is higher than previous valley
+higherLow = not na(lastValleyValue) and not na(prevValleyValue) and lastValleyValue > prevValleyValue
+
+// Track last signal to ensure alternation
+var string lastSignal = na
+
+// Signal conditions
+// SELL: CMF crosses below 0 OR lower high detected
+sellCondition = crossBelowZero or (not na(pivotHigh) and lowerHigh)
+
+// BUY: CMF crosses above 0 OR (CMF < 0 AND higher low detected)
+buyCondition = crossAboveZero or (mf < 0 and not na(pivotLow) and higherLow)
+
+// Apply alternation logic
+buySignal = buyCondition and (na(lastSignal) or lastSignal == "SELL")
+sellSignal = sellCondition and (na(lastSignal) or lastSignal == "BUY")
+
+// Update last signal
+if buySignal
+    lastSignal := "BUY"
+else if sellSignal
+    lastSignal := "SELL"
+
+// Plot CMF
+plot(mf, "CMF", color = #43A047, linewidth=2)
+hline(0, "Zero", color = #787B86, linestyle = hline.style_dashed)
+
+// Plot signals with text
+plotshape(buySignal, title="Strong BUY", text="BUY", style=shape.labelup, location=location.bottom, color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
+plotshape(sellSignal, title="Strong SELL", text="SELL", style=shape.labeldown, location=location.top, color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
+
+// Plot pivot points for visualization
+plotshape(pivotHigh, "Peak", shape.diamond, location.absolute, color.red, size=size.tiny, offset=-pivot_lookback)
+plotshape(pivotLow, "Valley", shape.diamond, location.absolute, color.green, size=size.tiny, offset=-pivot_lookback)
+
+// Alerts
+alertcondition(buySignal, title="CMF Buy Signal", message="CMF Buy: Cross above 0 or Higher Low")
+alertcondition(sellSignal, title="CMF Sell Signal", message="CMF Sell: Cross below 0 or Lower High")

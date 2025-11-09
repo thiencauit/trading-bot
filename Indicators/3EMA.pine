@@ -1,0 +1,59 @@
+//@version=6
+indicator("Triple EMA (5, 10, 20)", shorttitle="3EMA", overlay=true)
+
+// Input settings
+ema5Length = input.int(5, "EMA 5 Period", minval=1, group="EMA Settings")
+ema10Length = input.int(10, "EMA 10 Period", minval=1, group="EMA Settings")
+ema20Length = input.int(20, "EMA 20 Period", minval=1, group="EMA Settings")
+
+// Color settings
+ema5Color = input.color(color.new(#00ff00, 0), "EMA 5 Color", group="Display Settings")
+ema10Color = input.color(color.new(#ffff00, 0), "EMA 10 Color", group="Display Settings")
+ema20Color = input.color(color.new(#ff0000, 0), "EMA 20 Color", group="Display Settings")
+
+lineWidth = input.int(1, "Line Width", minval=1, maxval=5, group="Display Settings")
+
+// Calculate EMAs
+ema5 = ta.ema(close, ema5Length)
+ema10 = ta.ema(close, ema10Length)
+ema20 = ta.ema(close, ema20Length)
+
+// Plot EMAs
+plot(ema5, title="EMA 5", color=ema5Color, linewidth=lineWidth)
+plot(ema10, title="EMA 10", color=ema10Color, linewidth=lineWidth)
+plot(ema20, title="EMA 20", color=ema20Color, linewidth=lineWidth)
+
+// Trend identification
+bullishTrend = ema5 > ema10 and ema10 > ema20
+bearishTrend = ema5 < ema10 and ema10 < ema20
+
+// Background color for trend
+bgcolor(bullishTrend ? color.new(color.green, 95) : bearishTrend ? color.new(color.red, 95) : na, title="Trend Background")
+
+// Crossover signals
+ema5CrossAbove10 = ta.crossover(ema5, ema10)
+ema5CrossBelow10 = ta.crossunder(ema5, ema10)
+ema10CrossAbove20 = ta.crossover(ema10, ema20)
+ema10CrossBelow20 = ta.crossunder(ema10, ema20)
+
+// Plot signals
+plotshape(ema5CrossAbove10, title="EMA 5 Cross Above 10", style=shape.triangleup, location=location.belowbar, color=color.new(color.lime, 0), size=size.tiny)
+plotshape(ema5CrossBelow10, title="EMA 5 Cross Below 10", style=shape.triangledown, location=location.abovebar, color=color.new(color.orange, 0), size=size.tiny)
+
+plotshape(ema10CrossAbove20, title="EMA 10 Cross Above 20", style=shape.circle, location=location.belowbar, color=color.new(color.green, 0), size=size.small)
+plotshape(ema10CrossBelow20, title="EMA 10 Cross Below 20", style=shape.circle, location=location.abovebar, color=color.new(color.red, 0), size=size.small)
+
+// Strong buy/sell signals (all EMAs aligned)
+strongBuySignal = ta.crossover(ema5, ema20) and bullishTrend
+strongSellSignal = ta.crossunder(ema5, ema20) and bearishTrend
+
+plotshape(strongBuySignal, title="Strong BUY", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
+plotshape(strongSellSignal, title="Strong SELL", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
+
+// Alerts
+alertcondition(ema5CrossAbove10, title="EMA 5 Cross Above 10", message="EMA 5 crossed above EMA 10")
+alertcondition(ema5CrossBelow10, title="EMA 5 Cross Below 10", message="EMA 5 crossed below EMA 10")
+alertcondition(ema10CrossAbove20, title="EMA 10 Cross Above 20", message="EMA 10 crossed above EMA 20")
+alertcondition(ema10CrossBelow20, title="EMA 10 Cross Below 20", message="EMA 10 crossed below EMA 20")
+alertcondition(strongBuySignal, title="Strong BUY Signal", message="Strong BUY: All EMAs Aligned Bullish")
+alertcondition(strongSellSignal, title="Strong SELL Signal", message="Strong SELL: All EMAs Aligned Bearish")

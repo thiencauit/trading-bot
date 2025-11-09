@@ -1,0 +1,188 @@
+Prompt cho AI sinh code Indicator “Super MA”
+
+Hãy viết indicator Pine Script v6 tên “Super MA” (overlay=true) với 5 đường SMA5, SMA10, SMA20, SMA50, SMA100 và toàn bộ logic tín hiệu/alert dưới đây. Code phải sạch, có chú thích rõ ràng, nhiều input tinh chỉnh, và có bảng/tín hiệu trực quan.
+
+1) Inputs & Cấu hình
+
+Độ dài MA: len5=5, len10=10, len20=20, len50=50, len100=100 (khóa mặc định như tên).
+
+Cấu hình “volume lớn” (tùy chọn):
+
+Cách 1 (mặc định): Vol SMA với volLen (mặc định 20) và hệ số volMult (mặc định 1.5): volume lớn khi volume > sma(volume, volLen) * volMult.
+
+Cách 2: Percentile (tuỳ chọn bật/tắt): tính ngưỡng volPct (mặc định 80%) trên cửa sổ volLen; volume lớn khi volume >= percentile(volume, volLen, volPct).
+
+Xác định “hướng lên/xuống” của một MA: dùng độ dốc (slope) theo slopeLen (mặc định 3) hoặc so sánh MA hiện tại với MA của slopeLen nến trước.
+
+Xác định “đi ngang”: độ dốc tuyệt đối < flatThresh (mặc định = 0.0% đến 0.05%/bar — cho phép chỉnh theo %/bar).
+
+Bộ lọc nhiễu: confirmBars (mặc định 1–2) yêu cầu điều kiện duy trì N bar ( hoặc cho phép xác nhận ngay trên bar đóng).
+
+Hiển thị: bật/tắt từng MA, bật nhãn/label, mũi tên Buy/Sell, tô nền (background) khi trend tăng/giảm, bảng (table) trạng thái.
+
+Cấu hình alert: bật/tắt từng loại alert.
+
+2) Tính toán MA
+
+Tính SMA5/10/20/50/100 trên close.
+
+Tính hướng (slopeUp, slopeDown, flat) cho từng MA dựa trên cấu hình trên.
+
+3) Định nghĩa Trend nền (khung xu hướng)
+
+Trend tăng (bullish) khi:
+
+SMA10 ≥ SMA20 và (slope SMA10 > 0 hoặc slope SMA20 > 0).
+
+Trend giảm (bearish) khi:
+
+SMA10 ≤ SMA20 và (slope SMA10 < 0 hoặc slope SMA20 < 0).
+
+Nếu không rõ ràng → “neutral”.
+
+Tô nền nhẹ (màu xanh nhạt khi bullish, đỏ nhạt khi bearish; tắt được).
+
+4) Logic tín hiệu chi tiết (đúng nguyên văn yêu cầu)
+4.1. Đối với trend giảm
+
+Mua sớm (anticipation):
+
+BuyEarly_SMA5: Giá cắt lên SMA5 với “volume lớn” ⇒ tạo tín hiệu “Mua” sớm sắp đảo chiều sang tăng.
+
+BuyEarly_SMA10: Giá cắt lên SMA10 với “volume lớn” ⇒ tín hiệu “Mua” sắp đảo chiều sang tăng.
+
+Mua đảo chiều (confirmation):
+
+BuyReversal_SMA20: Giá cắt lên SMA20 với “volume lớn” ⇒ tín hiệu “Mua” đảo chiều sang trend tăng.
+
+MA5CrossUp10: SMA5 cắt lên SMA10 ⇒ tín hiệu đảo chiều sang tăng.
+
+MA10CrossUp20_and_Stack: SMA10 cắt lên SMA20, và SMA5 nằm trên SMA10 và SMA20, và SMA20 đang đi ngang hoặc hướng lên ⇒ xác nhận trend tăng (gắn nhãn “Trend Up Confirmed”).
+
+Điều kiện ràng buộc đặc biệt cho tín hiệu Mua ở SMA5:
+
+Tín hiệu “Mua” ở SMA5 chỉ hợp lệ khi SMA10 và SMA20 đều đang hướng lên.
+
+Nếu giá điều chỉnh tại SMA20 và không phá lên được trong 2–3 phiên ⇒ phát tín hiệu “Bán lệnh Mua” (exit long). Cho phép tùy chọn failBreakBars = 2..3.
+
+4.2. Đối với trend tăng
+
+Bán sớm (anticipation):
+
+SellEarly_SMA5: Giá cắt xuống SMA5 với “volume lớn” ⇒ tín hiệu “Bán” sớm sắp đảo chiều sang giảm.
+
+SellEarly_SMA10: Giá cắt xuống SMA10 với “volume lớn” ⇒ tín hiệu “Bán” sắp đảo chiều sang giảm.
+
+Bán đảo chiều (confirmation):
+
+SellReversal_SMA20: Giá cắt xuống SMA20 với “volume lớn” ⇒ tín hiệu “Bán” đảo chiều sang trend giảm.
+
+MA5CrossDown10: SMA5 cắt xuống SMA10 ⇒ tín hiệu đảo chiều sang giảm.
+
+MA10CrossDown20_and_Stack: SMA10 cắt xuống SMA20, và (điều kiện xác nhận trend giảm) SMA5 nằm dưới SMA10 và SMA20 đang đi ngang hoặc hướng xuống ⇒ xác nhận trend giảm (gắn nhãn “Trend Down Confirmed”).
+
+Điều kiện ràng buộc đặc biệt cho tín hiệu Bán ở SMA5:
+
+Tín hiệu “Bán” ở SMA5 chỉ hợp lệ khi SMA10 và SMA20 đều đang hướng xuống.
+
+Nếu giá điều chỉnh tại SMA20 và không phá xuống được trong 2–3 phiên ⇒ phát tín hiệu “Mua lại lệnh Bán” (exit short / close sell).
+
+Ghi chú: “giá cắt lên/xuống MAx” dùng close cắt qua MA trên bar đóng (hoặc cấu hình useIntrabar=false/true).
+
+5) Ưu tiên & Xung đột tín hiệu
+
+Nếu cùng lúc có nhiều tín hiệu, ưu tiên: Reversal (SMA20/MA cross xác nhận) > Early (SMA5/10).
+
+Không lặp alert nhiều lần trong cùng 1 bar: dùng biến trạng thái để chỉ alert khi barstate.isconfirmed.
+
+6) Vẽ & Hiển thị
+
+Vẽ 5 MA với màu khác nhau, toggle hiển thị.
+
+Vẽ mũi tên/label:
+
+Early Buy: mũi tên lên màu xanh lá; Early Sell: mũi tên xuống màu đỏ.
+
+Reversal Buy: label xanh dương “Buy Reversal @SMA20 / CrossUp”; Reversal Sell: label cam/đỏ “Sell Reversal @SMA20 / CrossDown”.
+
+“Trend Up Confirmed” / “Trend Down Confirmed” vẽ label ô vuông nhỏ gần giá.
+
+Vẽ điểm kiểm tra tại SMA20 cho rule “không phá lên/xuống trong 2–3 phiên” bằng box nhỏ/label cảnh báo.
+
+Thêm table góc phải:
+
+Hàng 1: Trend (Bull / Bear / Neutral).
+
+Hàng 2: Hướng từng MA (↑ / ↓ / →).
+
+Hàng 3: Volume State (Big / Normal).
+
+Hàng 4: Tín hiệu gần nhất & thời gian.
+
+7) Alertconditions (tên & mô tả chuẩn)
+
+Tạo alertcondition() cho từng trường hợp bên dưới, kèm mô tả ngắn gọn và mã hoá biến để dễ lọc:
+
+BUY_EARLY_SMA5
+
+BUY_EARLY_SMA10
+
+BUY_REVERSAL_SMA20
+
+BUY_CROSS_MA5_OVER_MA10
+
+TREND_UP_CONFIRMED
+
+EXIT_LONG_FAIL_BREAK_SMA20 (Bán lệnh Mua do không phá SMA20 trong N phiên)
+
+SELL_EARLY_SMA5
+
+SELL_EARLY_SMA10
+
+SELL_REVERSAL_SMA20
+
+SELL_CROSS_MA5_UNDER_MA10
+
+TREND_DOWN_CONFIRMED
+
+EXIT_SHORT_FAIL_BREAK_SMA20 (Mua lại lệnh Bán do không phá SMA20 trong N phiên)
+
+8) Kiểm soát chất lượng
+
+Không repaint, mọi điều kiện dựa trên bar đóng mặc định.
+
+Bảo vệ: kiểm tra bar_index > max(lenX) trước khi tính điều kiện.
+
+Code chia thành hàm nhỏ:
+
+isSlopeUp(ma) / isSlopeDown(ma) / isFlat(ma)
+
+crossUp(src, ma) / crossDown(src, ma)
+
+isBigVolume()
+
+failBreakAtMA20(isUp, lookbackBars) để phát hiện không phá được SMA20 trong 2–3 phiên theo chiều mong muốn.
+
+9) Tùy chọn chiến lược (optional toggle)
+
+Input showStrategy=false (mặc định tắt). Khi bật:
+
+Vào long khi có BUY_REVERSAL_SMA20 hoặc TREND_UP_CONFIRMED (có thể cho phép Early Buy vào với rủi ro cao – cấu hình).
+
+Đóng long khi EXIT_LONG_FAIL_BREAK_SMA20 hoặc có tín hiệu đảo chiều sell confirm.
+
+Tương tự cho short phía ngược lại.
+
+Inputs: slPct, tpPct, trailPct (tuỳ chọn).
+
+Dùng strategy() riêng; nếu showStrategy=false thì chỉ indicator().
+
+10) Trình bày & UX
+
+Nhãn tiếng Việt: “Mua”, “Bán”, “Đảo chiều tăng/giảm”, “Xác nhận trend tăng/giảm”, “Bán lệnh Mua”, “Mua lại lệnh Bán”.
+
+Biểu tượng/label gọn, không che nến (dùng yloc=abovebar/belowbar, text.size_small).
+
+Màu sắc dịu, có input bật/tắt từng lớp (MA, label, background, table).
+
+Yêu cầu cuối: Xuất code Pine Script v6 đầy đủ, chạy được ngay, có tất cả alertcondition như trên, kèm bình luận (comment) giải thích ở từng khối logic.

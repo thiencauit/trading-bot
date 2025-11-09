@@ -1,0 +1,1249 @@
+{
+    "success": true,
+    "result": {
+        "metaInfo": {
+            "_metainfoVersion": 54,
+            "defaults": {
+                "filledAreasStyle": {
+                    "fill_0": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "transparency": 99,
+                        "visible": true
+                    },
+                    "fill_1": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "transparency": 99,
+                        "visible": true
+                    },
+                    "fill_2": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "transparency": 99,
+                        "visible": true
+                    },
+                    "fill_3": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "transparency": 98,
+                        "visible": true
+                    }
+                },
+                "graphics": {
+                    "dwglabels": {
+                        "labels": {
+                            "display": 15,
+                            "visible": true
+                        }
+                    }
+                },
+                "inputs": {
+                    "in_0": 10,
+                    "in_1": false,
+                    "in_10": false,
+                    "in_2": true,
+                    "in_3": true,
+                    "in_4": true,
+                    "in_5": true,
+                    "in_6": true,
+                    "in_7": true,
+                    "in_8": true,
+                    "in_9": true,
+                    "pineId": "",
+                    "pineVersion": "",
+                    "text": "bmI9Ks46_2LykV0XsenSbmJyHCqxPxg==_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"
+                },
+                "palettes": {
+                    "palette_0": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#FF5252",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_1": {
+                        "colors": {
+                            "0": {
+                                "color": "rgba(255,82,82,0.6)",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "rgba(76,175,80,0.6)",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_10": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#FF5252",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_11": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#FF5252",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_12": {
+                        "colors": {
+                            "0": {
+                                "color": "#00E676",
+                                "style": 0,
+                                "width": 2
+                            },
+                            "1": {
+                                "color": "#E040FB",
+                                "style": 0,
+                                "width": 2
+                            }
+                        }
+                    },
+                    "palette_13": {
+                        "colors": {
+                            "0": {
+                                "color": "#00E676",
+                                "style": 0,
+                                "width": 2
+                            },
+                            "1": {
+                                "color": "#E040FB",
+                                "style": 0,
+                                "width": 2
+                            }
+                        }
+                    },
+                    "palette_14": {
+                        "colors": {
+                            "0": {
+                                "color": "#00E676",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#E040FB",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_15": {
+                        "colors": {
+                            "0": {
+                                "color": "#00ff98",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_16": {
+                        "colors": {
+                            "0": {
+                                "color": "#E040FB",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_2": {
+                        "colors": {
+                            "0": {
+                                "color": "rgba(255,82,82,0.6)",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "rgba(76,175,80,0.6)",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_3": {
+                        "colors": {
+                            "0": {
+                                "color": "rgba(255,82,82,0.6)",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "rgba(76,175,80,0.6)",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_4": {
+                        "colors": {
+                            "0": {
+                                "color": "rgba(255,82,82,0.6)",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "rgba(76,175,80,0.6)",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_5": {
+                        "colors": {
+                            "0": {
+                                "color": "#00E676",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_6": {
+                        "colors": {
+                            "0": {
+                                "color": "#FF9800",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_7": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#FF5252",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_8": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#FF5252",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_9": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50",
+                                "style": 0,
+                                "width": 1
+                            },
+                            "1": {
+                                "color": "#FF5252",
+                                "style": 0,
+                                "width": 1
+                            }
+                        }
+                    },
+                    "palette_common": {
+                        "colors": {
+                            "0": {
+                                "color": "#4CAF50"
+                            },
+                            "1": {
+                                "color": "#FF5252"
+                            },
+                            "2": {
+                                "color": "rgba(255,82,82,0.6)"
+                            },
+                            "3": {
+                                "color": "rgba(76,175,80,0.6)"
+                            },
+                            "4": {
+                                "color": "#00E676"
+                            },
+                            "5": {
+                                "color": "#FF9800"
+                            },
+                            "6": {
+                                "color": "#E040FB"
+                            },
+                            "7": {
+                                "color": "#00ff98"
+                            },
+                            "8": {
+                                "color": "#FFFFFF"
+                            }
+                        }
+                    }
+                },
+                "styles": {
+                    "plot_0": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": false,
+                        "transparency": 50,
+                        "visible": true
+                    },
+                    "plot_10": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 6,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_12": {
+                        "color": "rgba(76,175,80,0.6)",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_13": {
+                        "color": "rgba(54,58,69,0.6)",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 6,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_14": {
+                        "color": "rgba(54,58,69,0.6)",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 6,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_17": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": false,
+                        "transparency": 50,
+                        "visible": true
+                    },
+                    "plot_19": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": false,
+                        "transparency": 50,
+                        "visible": true
+                    },
+                    "plot_2": {
+                        "color": "rgba(255,82,82,0.6)",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_21": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": false,
+                        "transparency": 100,
+                        "visible": true
+                    },
+                    "plot_25": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 2,
+                        "plottype": 0,
+                        "trackPrice": false,
+                        "transparency": 50,
+                        "visible": true
+                    },
+                    "plot_27": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 2,
+                        "plottype": 0,
+                        "trackPrice": false,
+                        "transparency": 80,
+                        "visible": true
+                    },
+                    "plot_3": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 6,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_32": {
+                        "color": "#4CAF50",
+                        "display": 15,
+                        "location": "BelowBar",
+                        "plottype": "shape_xcross",
+                        "textColor": "#4CAF50",
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_34": {
+                        "color": "#FF5252",
+                        "display": 15,
+                        "location": "AboveBar",
+                        "plottype": "shape_xcross",
+                        "textColor": "#FF5252",
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_5": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 6,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_7": {
+                        "color": "rgba(33,150,243,0.6)",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 0,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    },
+                    "plot_8": {
+                        "color": "#2196F3",
+                        "display": 15,
+                        "linestyle": 0,
+                        "linewidth": 1,
+                        "plottype": 6,
+                        "trackPrice": true,
+                        "transparency": 0,
+                        "visible": true
+                    }
+                }
+            },
+            "description": "AYN: Buy-, Sell-, Trend- and SwingSignals (also BotTracking, AutoFibo, Long/Short...)",
+            "filledAreas": [
+                {
+                    "fillgaps": false,
+                    "id": "fill_0",
+                    "isHidden": false,
+                    "objAId": "plot_21",
+                    "objBId": "plot_0",
+                    "palette": "palette_9",
+                    "title": "Fill 1",
+                    "type": "plot_plot"
+                },
+                {
+                    "fillgaps": false,
+                    "id": "fill_1",
+                    "isHidden": false,
+                    "objAId": "plot_21",
+                    "objBId": "plot_17",
+                    "palette": "palette_10",
+                    "title": "Fill 2",
+                    "type": "plot_plot"
+                },
+                {
+                    "fillgaps": false,
+                    "id": "fill_2",
+                    "isHidden": false,
+                    "objAId": "plot_21",
+                    "objBId": "plot_19",
+                    "palette": "palette_11",
+                    "title": "Fill 3",
+                    "type": "plot_plot"
+                },
+                {
+                    "fillgaps": false,
+                    "id": "fill_3",
+                    "isHidden": false,
+                    "objAId": "plot_21",
+                    "objBId": "plot_25",
+                    "palette": "palette_14",
+                    "title": "Fill 0",
+                    "type": "plot_plot"
+                }
+            ],
+            "format": {
+                "type": "inherit"
+            },
+            "graphics": {
+                "dwglabels": {
+                    "labels": {
+                        "name": "labels",
+                        "title": "Labels"
+                    }
+                }
+            },
+            "historyCalculationMayChange": true,
+            "id": "Script$PUB;kBDkvMT5y6JOKxbTEBjL3WRXJdTN5YVX@tv-scripting-101",
+            "inputs": [
+                {
+                    "defval": "bmI9Ks46_2LykV0XsenSbmJyHCqxPxg==_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",
+                    "id": "text",
+                    "isHidden": true,
+                    "name": "ILScript",
+                    "type": "text"
+                },
+                {
+                    "defval": "",
+                    "id": "pineId",
+                    "isHidden": true,
+                    "name": "pineId",
+                    "type": "text"
+                },
+                {
+                    "defval": "",
+                    "id": "pineVersion",
+                    "isHidden": true,
+                    "name": "pineVersion",
+                    "type": "text"
+                },
+                {
+                    "defval": 10,
+                    "id": "in_0",
+                    "isFake": true,
+                    "max": 100,
+                    "min": 0,
+                    "name": "IndicatorLenghts: <10 shorter / >10 longer",
+                    "type": "integer"
+                },
+                {
+                    "defval": false,
+                    "id": "in_1",
+                    "isFake": true,
+                    "name": "Activate BuySell?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_2",
+                    "isFake": true,
+                    "name": "Activate BuySellLabels?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_3",
+                    "isFake": true,
+                    "name": "Activate Prices?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_4",
+                    "isFake": true,
+                    "name": "Activate Results?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_5",
+                    "isFake": true,
+                    "name": "Activate AutoFibonacci?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_6",
+                    "isFake": true,
+                    "name": "Activate ShortTrend?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_7",
+                    "isFake": true,
+                    "name": "Activate MidTrend?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_8",
+                    "isFake": true,
+                    "name": "Activate LongTrend?",
+                    "type": "bool"
+                },
+                {
+                    "defval": true,
+                    "id": "in_9",
+                    "isFake": true,
+                    "name": "Activate 1D SMA?",
+                    "type": "bool"
+                },
+                {
+                    "defval": false,
+                    "id": "in_10",
+                    "isFake": true,
+                    "name": "Activate 1W SMA?",
+                    "type": "bool"
+                }
+            ],
+            "isTVScript": true,
+            "isTVScriptStub": false,
+            "is_hidden_study": false,
+            "is_price_study": true,
+            "palettes": {
+                "palette_0": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1
+                    }
+                },
+                "palette_1": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "2": 0,
+                        "3": 1
+                    }
+                },
+                "palette_10": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1
+                    }
+                },
+                "palette_11": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1
+                    }
+                },
+                "palette_12": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "4": 0,
+                        "6": 1
+                    }
+                },
+                "palette_13": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "4": 0,
+                        "6": 1
+                    }
+                },
+                "palette_14": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "4": 0,
+                        "6": 1
+                    }
+                },
+                "palette_15": {
+                    "addDefaultColor": true,
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        }
+                    },
+                    "valToIndex": {
+                        "7": 0
+                    }
+                },
+                "palette_16": {
+                    "addDefaultColor": true,
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        }
+                    },
+                    "valToIndex": {
+                        "6": 0
+                    }
+                },
+                "palette_2": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "2": 0,
+                        "3": 1
+                    }
+                },
+                "palette_3": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "2": 0,
+                        "3": 1
+                    }
+                },
+                "palette_4": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "2": 0,
+                        "3": 1
+                    }
+                },
+                "palette_5": {
+                    "addDefaultColor": true,
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        }
+                    },
+                    "valToIndex": {
+                        "4": 0
+                    }
+                },
+                "palette_6": {
+                    "addDefaultColor": true,
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        }
+                    },
+                    "valToIndex": {
+                        "5": 0
+                    }
+                },
+                "palette_7": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1
+                    }
+                },
+                "palette_8": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1
+                    }
+                },
+                "palette_9": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1
+                    }
+                },
+                "palette_common": {
+                    "colors": {
+                        "0": {
+                            "name": "Color 0"
+                        },
+                        "1": {
+                            "name": "Color 1"
+                        },
+                        "2": {
+                            "name": "Color 2"
+                        },
+                        "3": {
+                            "name": "Color 3"
+                        },
+                        "4": {
+                            "name": "Color 4"
+                        },
+                        "5": {
+                            "name": "Color 5"
+                        },
+                        "6": {
+                            "name": "Color 6"
+                        },
+                        "7": {
+                            "name": "Color 7"
+                        },
+                        "8": {
+                            "name": "Color 8"
+                        }
+                    },
+                    "valToIndex": {
+                        "0": 0,
+                        "1": 1,
+                        "2": 2,
+                        "3": 3,
+                        "4": 4,
+                        "5": 5,
+                        "6": 6,
+                        "7": 7,
+                        "8": 8
+                    }
+                }
+            },
+            "pine": {
+                "digest": "2baeaed942da2e0c0bf81a2eac357ad1da8c0cd2",
+                "version": "3.0"
+            },
+            "plots": [
+                {
+                    "id": "plot_0",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_1",
+                    "palette": "palette_0",
+                    "target": "plot_0",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_2",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_3",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_4",
+                    "palette": "palette_1",
+                    "target": "plot_3",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_5",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_6",
+                    "palette": "palette_2",
+                    "target": "plot_5",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_7",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_8",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_9",
+                    "palette": "palette_3",
+                    "target": "plot_8",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_10",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_11",
+                    "palette": "palette_4",
+                    "target": "plot_10",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_12",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_13",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_14",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_15",
+                    "palette": "palette_5",
+                    "type": "bar_colorer"
+                },
+                {
+                    "id": "plot_16",
+                    "palette": "palette_6",
+                    "type": "bar_colorer"
+                },
+                {
+                    "id": "plot_17",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_18",
+                    "palette": "palette_7",
+                    "target": "plot_17",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_19",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_20",
+                    "palette": "palette_8",
+                    "target": "plot_19",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_21",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_22",
+                    "palette": "palette_9",
+                    "target": "fill_0",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_23",
+                    "palette": "palette_10",
+                    "target": "fill_1",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_24",
+                    "palette": "palette_11",
+                    "target": "fill_2",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_25",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_26",
+                    "palette": "palette_12",
+                    "target": "plot_25",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_27",
+                    "type": "line"
+                },
+                {
+                    "id": "plot_28",
+                    "palette": "palette_13",
+                    "target": "plot_27",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_29",
+                    "palette": "palette_14",
+                    "target": "fill_3",
+                    "type": "colorer"
+                },
+                {
+                    "id": "plot_30",
+                    "palette": "palette_15",
+                    "type": "bar_colorer"
+                },
+                {
+                    "id": "plot_31",
+                    "palette": "palette_16",
+                    "type": "bar_colorer"
+                },
+                {
+                    "id": "plot_32",
+                    "type": "shapes"
+                },
+                {
+                    "id": "plot_33",
+                    "type": "alertcondition"
+                },
+                {
+                    "id": "plot_34",
+                    "type": "shapes"
+                },
+                {
+                    "id": "plot_35",
+                    "type": "alertcondition"
+                }
+            ],
+            "scriptIdPart": "PUB;kBDkvMT5y6JOKxbTEBjL3WRXJdTN5YVX",
+            "shortDescription": "AYN-Indicator by Snurk",
+            "stats": {
+                "alertcondition": 2,
+                "plot": 15,
+                "plotshape": 2
+            },
+            "styles": {
+                "plot_0": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "ShortTrend"
+                },
+                "plot_10": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 0.236"
+                },
+                "plot_12": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "0"
+                },
+                "plot_13": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 1"
+                },
+                "plot_14": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 0"
+                },
+                "plot_15": {
+                    "isHidden": false,
+                    "title": "Bar Color"
+                },
+                "plot_16": {
+                    "isHidden": false,
+                    "title": "Bar Color"
+                },
+                "plot_17": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "EMA99"
+                },
+                "plot_19": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "EMA200"
+                },
+                "plot_2": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 1"
+                },
+                "plot_21": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "Plot"
+                },
+                "plot_25": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "1Day Trend"
+                },
+                "plot_27": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "1Week Trend"
+                },
+                "plot_3": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 0.786"
+                },
+                "plot_30": {
+                    "isHidden": false,
+                    "title": "UpTrend"
+                },
+                "plot_31": {
+                    "isHidden": false,
+                    "title": "DownTrend"
+                },
+                "plot_32": {
+                    "isHidden": false,
+                    "size": "tiny",
+                    "text": "Buy",
+                    "title": "Shapes"
+                },
+                "plot_33": {
+                    "text": "Alert Fired!",
+                    "title": "Buy"
+                },
+                "plot_34": {
+                    "isHidden": false,
+                    "size": "tiny",
+                    "text": "Sell",
+                    "title": "Shapes"
+                },
+                "plot_35": {
+                    "text": "Alert Fired!",
+                    "title": "Sell"
+                },
+                "plot_5": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 0.618"
+                },
+                "plot_7": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 0.5"
+                },
+                "plot_8": {
+                    "histogramBase": 0,
+                    "isHidden": false,
+                    "joinPoints": false,
+                    "title": "AutoFibo: 0.382"
+                }
+            },
+            "usesPrivateLib": false,
+            "warnings": [
+                "line 169: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 170: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 172: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 173: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 174: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 175: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 192: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 193: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 195: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 230: Shadowing variable 'sma_1' which exists in parent scope. Did you want to use the ':=' operator instead of '=' ?",
+                "line 279: The function 'barssince' should be called on each calculation for consistency. It is recommended to extract the call from the ternary operator or from the scope.",
+                "line 280: The function 'barssince' should be called on each calculation for consistency. It is recommended to extract the call from the ternary operator or from the scope.",
+                "line 282: The function 'barssince' should be called on each calculation for consistency. It is recommended to extract the call from the ternary operator or from the scope.",
+                "line 283: The function 'barssince' should be called on each calculation for consistency. It is recommended to extract the call from the ternary operator or from the scope.",
+                "line 30: The transp argument will be deprecated soon. We recommend using color.new() or color.rgb() functions to specify the transparency of the plots instead.",
+                "line 43: Using argument with the same name 'linewidth'",
+                "line 46: Using argument with the same name 'linewidth'",
+                "line 49: Using argument with the same name 'linewidth'"
+            ]
+        }
+    }
+}
