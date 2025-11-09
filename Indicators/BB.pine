@@ -12,6 +12,14 @@ offset = input.int(0, "Offset", minval = -500, maxval = 500, display = display.d
 showSignals = input.bool(true, "Show Buy/Sell Signals", group="Signal Settings")
 showBreakouts = input.bool(true, "Show Breakout Signals", group="Signal Settings")
 showSqueeze = input.bool(true, "Show Squeeze Alerts", group="Signal Settings")
+useFilters = input.bool(true, "Use RSI & Volume Filters", group="Signal Settings")
+minVolumeMult = input.float(1.2, "Min Volume Multiplier", minval=0.5, maxval=3.0, step=0.1, group="Signal Settings")
+minBandwidth = input.float(2.0, "Min Bandwidth %", minval=0.5, maxval=10.0, step=0.1, tooltip="Chỉ giao dịch khi BB đủ rộng", group="Signal Settings")
+
+// Momentum confirmation settings
+rsiLength = input.int(14, "RSI Length", minval=5, maxval=50, group="Momentum Filter")
+rsiOverbought = input.int(70, "RSI Overbought", minval=50, maxval=90, group="Momentum Filter")
+rsiOversold = input.int(30, "RSI Oversold", minval=10, maxval=50, group="Momentum Filter")
 
 // Moving average function
 ma(source, length, _type) =>
@@ -28,8 +36,25 @@ dev = mult * ta.stdev(src, length)
 upper = basis + dev
 lower = basis - dev
 
+// Baseline trend detection
+basisSlope = basis - basis[1]
+basisUptrend = basisSlope > 0 and basis > basis[2] // Baseline đang tăng
+basisDowntrend = basisSlope < 0 and basis < basis[2] // Baseline đang giảm
+basisSideways = not basisUptrend and not basisDowntrend // Baseline đi ngang
+
+// Momentum confirmation (RSI)
+rsi = ta.rsi(close, rsiLength)
+rsiOversoldZone = rsi < rsiOversold
+rsiOverboughtZone = rsi > rsiOverbought
+rsiNeutral = rsi >= rsiOversold and rsi <= rsiOverbought
+
+// Volume confirmation
+avgVolume = ta.sma(volume, 20)
+isHighVolume = volume > avgVolume * minVolumeMult
+isAboveAvgVolume = volume > avgVolume
+
 // Plot Bollinger Bands
-plot(basis, "Basis", color=#2962FF, offset = offset, linewidth=1)
+plot(basis, "Basis", color=#2962FF, offset = offset, linewidth=2)
 p1 = plot(upper, "Upper", color=#F23645, offset = offset, linewidth=1)
 p2 = plot(lower, "Lower", color=#089981, offset = offset, linewidth=1)
 fill(p1, p2, title = "Background", color=color.rgb(33, 150, 243, 95))
@@ -48,50 +73,94 @@ squeeze = bandwidth < ta.lowest(bandwidth, 100) * 1.5
 squeezeBgColor = squeeze ? color.new(color.orange, 95) : na
 bgcolor(showSqueeze ? squeezeBgColor : na, title="Squeeze Background")
 
-// Price position relative to bands
-priceAboveUpper = close > upper
-priceBelowLower = close < lower
+// BB Width Filter - Chỉ trade khi BB đủ rộng
+isWideEnough = bandwidth > minBandwidth
+isExpandingBand = bandwidth > bandwidth[1] // BB đang mở rộng
 
 // %B indicator (shows where price is relative to bands)
 percentB = (close - lower) / (upper - lower) * 100
 
-// Signal conditions
-// Buy signals - chỉ khi bands đang thu hẹp
-buySignalBounce = isContracting and (ta.crossover(close, lower) or (low <= lower and close > lower and close > open))
-buySignalMidBounce = isContracting and ta.crossover(close, basis) and close > open and close[1] < basis[1]
+// Detect price action patterns
+bullishRejection = low <= lower and close > lower and close > open // Nến tăng chạm đáy band
+bearishRejection = high >= upper and close < upper and close < open // Nến giảm chạm đỉnh band
+bullishEngulfing = close > open and close[1] < open[1] and close > open[1] and open < close[1]
+bearishEngulfing = close < open and close[1] > open[1] and close < open[1] and open > close[1]
 
-// Sell signals - chỉ khi bands đang thu hẹp
-sellSignalBounce = isContracting and (ta.crossunder(close, upper) or (high >= upper and close < upper and close < open))
-sellSignalMidBounce = isContracting and ta.crossunder(close, basis) and close < open and close[1] > basis[1]
+// Position relative to Baseline (Basis) and Bands
+priceAboveBasis = close > basis
+priceBelowBasis = close < basis
+priceAboveUpper = close > upper
+priceBelowLower = close < lower
 
-// Breakout signals - xuyên qua band với volume cao
-breakoutUp = ta.crossover(close, upper) and volume > ta.sma(volume, 20) * 1.5
-breakoutDown = ta.crossunder(close, lower) and volume > ta.sma(volume, 20) * 1.5
+// Advanced Signal conditions with filters
+// === STRONG BUY SIGNALS - Giá cắt LÊN Baseline ===
+buyBaseCross = ta.crossover(close, basis) // Giá cắt lên baseline
+// CHỈ BUY khi Baseline KHÔNG ĐANG GIẢM (uptrend hoặc sideways OK)
+strongBuyBasis = buyBaseCross and close > open and isWideEnough and not basisDowntrend
+strongBuyConditions = strongBuyBasis and (not useFilters or isAboveAvgVolume)
+
+// Buy tại lower band khi giá ở DƯỚI baseline - Nến tăng bounce
+// Điều kiện: Nến tăng + đóng trên lower + giá tăng mạnh + không phải nến nhỏ
+bullishBodySize = close - open // Độ lớn thân nến tăng
+isBigBullishCandle = close > open and bullishBodySize > (high - low) * 0.5 // Nến tăng chiếm >50% range
+buyAtLower = bullishRejection and priceBelowBasis and isWideEnough and isBigBullishCandle and close > close[1]
+strongBuyLower = buyAtLower and (not useFilters or volume > avgVolume * 0.8)
+
+// === MODERATE BUY - Giá đang trên baseline và bounce từ basis ===
+moderateBuyBasis = priceAboveBasis and low <= basis * 1.003 and close > basis and close > open
+moderateBuyConditions = moderateBuyBasis and (not useFilters or (rsi < 60 and volume > avgVolume * 0.8))
+
+// === STRONG SELL SIGNALS - Giá cắt XUỐNG Baseline ===
+sellBaseCross = ta.crossunder(close, basis) // Giá cắt xuống baseline
+// CHỈ SELL khi Baseline KHÔNG ĐANG TĂNG (downtrend hoặc sideways OK)
+strongSellBasis = sellBaseCross and close < open and isWideEnough and not basisUptrend
+strongSellConditions = strongSellBasis and (not useFilters or isAboveAvgVolume)
+
+// Sell tại upper band - CHỈ KHI có đảo chiều mạnh
+// Điều kiện: Nến giảm + đóng dưới upper + giá giảm mạnh + không phải nến nhỏ
+bearishBodySize = open - close // Độ lớn thân nến giảm
+isBigBearishCandle = close < open and bearishBodySize > (high - low) * 0.5 // Nến giảm chiếm >50% range
+sellAtUpper = bearishRejection and priceAboveBasis and isWideEnough and isBigBearishCandle and close < close[1]
+strongSellUpper = sellAtUpper and (not useFilters or volume > avgVolume * 0.8)
+
+// === MODERATE SELL - Giá đang dưới baseline và reject từ basis ===
+moderateSellBasis = priceBelowBasis and high >= basis * 0.997 and close < basis and close < open
+moderateSellConditions = moderateSellBasis and (not useFilters or (rsi > 40 and volume > avgVolume * 0.8))
+
+// === BREAKOUT SIGNALS (Cải tiến) ===
+// Breakout UP: Giá phá upper band từ trên baseline
+breakoutUp = ta.crossover(close, upper) and close > open and priceAboveBasis and (not useFilters or (isHighVolume and rsi > 50))
+
+// Breakout DOWN: Giá phá lower band từ dưới baseline
+breakoutDown = ta.crossunder(close, lower) and close < open and priceBelowBasis and (not useFilters or (isHighVolume and rsi < 50))
+
+// === FALSE BREAKOUT DETECTION ===
+falseBreakoutUp = high > upper and close < upper and close < open // Giá chọc upper nhưng đóng dưới
+falseBreakoutDown = low < lower and close > lower and close > open // Giá chọc lower nhưng đóng trên
 
 // Plot signals
-plotshape(showSignals and buySignalBounce, title="Buy at Lower Band", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.small)
-plotshape(showSignals and sellSignalBounce, title="Sell at Upper Band", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.small)
+// === MAIN SIGNALS ONLY - BUY và SELL ===
+// Tín hiệu BUY: Cắt lên baseline HOẶC bounce từ lower band (khi ở dưới baseline)
+mainBuySignal = strongBuyConditions or strongBuyLower
+plotshape(showSignals and mainBuySignal, title="BUY Signal", text="BUY", 
+         style=shape.labelup, location=location.belowbar, 
+         color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
 
-plotshape(showSignals and buySignalMidBounce, title="Buy at Middle", style=shape.triangleup, location=location.belowbar, color=color.new(color.lime, 0), size=size.tiny)
-plotshape(showSignals and sellSignalMidBounce, title="Sell at Middle", style=shape.triangledown, location=location.abovebar, color=color.new(color.orange, 0), size=size.tiny)
-
-plotshape(showBreakouts and breakoutUp, title="Breakout Up", text="BO↑", style=shape.diamond, location=location.abovebar, color=color.new(color.aqua, 0), textcolor=color.white, size=size.small)
-plotshape(showBreakouts and breakoutDown, title="Breakout Down", text="BO↓", style=shape.diamond, location=location.belowbar, color=color.new(color.fuchsia, 0), textcolor=color.white, size=size.small)
+// Tín hiệu SELL: Cắt xuống baseline HOẶC reject từ upper band (khi ở trên baseline)
+mainSellSignal = strongSellConditions or strongSellUpper
+plotshape(showSignals and mainSellSignal, title="SELL Signal", text="SELL", 
+         style=shape.labeldown, location=location.abovebar, 
+         color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
 
 // Squeeze indicator
 plotchar(showSqueeze and squeeze, title="Squeeze", char="■", location=location.top, color=color.orange, size=size.tiny)
 
-// Price position indicator
-plotshape(priceAboveUpper and not breakoutUp, title="Price > Upper", style=shape.xcross, location=location.abovebar, color=color.new(color.red, 30), size=size.tiny)
-plotshape(priceBelowLower and not breakoutDown, title="Price < Lower", style=shape.xcross, location=location.belowbar, color=color.new(color.green, 30), size=size.tiny)
+// Baseline position background color
+baselineBgColor = priceAboveBasis ? color.new(color.green, 97) : color.new(color.red, 97)
+bgcolor(baselineBgColor, title="Price vs Baseline")
 
 // Alerts
-alertcondition(buySignalBounce, title="Buy at Lower Band", message="BB: Price bounced from Lower Band - BUY Signal")
-alertcondition(sellSignalBounce, title="Sell at Upper Band", message="BB: Price rejected at Upper Band - SELL Signal")
-alertcondition(buySignalMidBounce, title="Buy at Middle Band", message="BB: Price crossed above Middle Band - Bullish")
-alertcondition(sellSignalMidBounce, title="Sell at Middle Band", message="BB: Price crossed below Middle Band - Bearish")
-alertcondition(breakoutUp, title="Breakout Up", message="BB: Breakout above Upper Band with high volume!")
-alertcondition(breakoutDown, title="Breakout Down", message="BB: Breakdown below Lower Band with high volume!")
-alertcondition(squeeze, title="Bollinger Squeeze", message="BB: Squeeze detected - Big move coming soon!")
-alertcondition(priceAboveUpper, title="Price Above Upper Band", message="BB: Price trading above Upper Band - Overbought zone")
-alertcondition(priceBelowLower, title="Price Below Lower Band", message="BB: Price trading below Lower Band - Oversold zone")
+alertcondition(mainBuySignal, title="BUY Signal", 
+              message="BB: Tín hiệu MUA - Giá cắt lên Baseline hoặc bounce từ Lower Band")
+alertcondition(mainSellSignal, title="SELL Signal", 
+              message="BB: Tín hiệu BÁN - Giá cắt xuống Baseline hoặc reject từ Upper Band")
