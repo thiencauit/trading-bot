@@ -44,12 +44,22 @@ higherLow = not na(lastValleyValue) and not na(prevValleyValue) and lastValleyVa
 // Track last signal to ensure alternation
 var string lastSignal = na
 
-// Signal conditions
-// SELL: CMF crosses below 0 OR lower high detected
-sellCondition = crossBelowZero or (not na(pivotHigh) and lowerHigh)
+// Determine CMF trend using multiple bars for confirmation
+cmfTrend = ta.sma(mf, 3) // Smooth trend
+cmfRising = cmfTrend > cmfTrend[1] and cmfTrend[1] > cmfTrend[2] // Consistent uptrend
+cmfFalling = cmfTrend < cmfTrend[1] and cmfTrend[1] < cmfTrend[2] // Consistent downtrend
 
-// BUY: CMF crosses above 0 OR (CMF < 0 AND higher low detected)
-buyCondition = crossAboveZero or (mf < 0 and not na(pivotLow) and higherLow)
+// Momentum confirmation
+cmfMomentum = mf - mf[1]
+strongUpMomentum = cmfMomentum > 0 and cmfMomentum > cmfMomentum[1]
+strongDownMomentum = cmfMomentum < 0 and cmfMomentum < cmfMomentum[1]
+
+// Signal conditions with multiple confirmations
+// SELL: At peak with downtrend confirmation OR lower high with strong down momentum
+sellCondition = (not na(pivotHigh) and cmfFalling) or (lowerHigh and not na(pivotHigh) and strongDownMomentum) or (crossBelowZero and mf[1] > 0.1 and cmfFalling)
+
+// BUY: At valley with uptrend confirmation OR higher low with strong up momentum  
+buyCondition = (not na(pivotLow) and cmfRising) or (higherLow and not na(pivotLow) and strongUpMomentum) or (crossAboveZero and mf[1] < -0.1 and cmfRising)
 
 // Apply alternation logic
 buySignal = buyCondition and (na(lastSignal) or lastSignal == "SELL")
