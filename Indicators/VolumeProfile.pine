@@ -28,6 +28,58 @@ for x = 0 to cnum by 1
 get_vol(y11, y12, y21, y22, height, vol) =>
     nz(math.max(math.min(math.max(y11, y12), math.max(y21, y22)) - math.max(math.min(y11, y12), math.min(y21, y22)), 0) * vol / height)
 
+// Calculate POC on every bar for signal detection
+volumes_calc = array.new_float(cnum * 2, 0.)
+for bars = 0 to bbars - 1 by 1
+    body_top = math.max(close[bars], open[bars])
+    body_bot = math.min(close[bars], open[bars])
+    itsgreen = close[bars] >= open[bars]
+    topwick = high[bars] - body_top
+    bottomwick = body_bot - low[bars]
+    body = body_top - body_bot
+    bodyvol = body * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+    topwickvol = 2 * topwick * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+    bottomwickvol = 2 * bottomwick * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+    for x = 0 to cnum - 1 by 1
+        array.set(volumes_calc, x, array.get(volumes_calc, x) + (itsgreen ? get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, body_top, body, bodyvol) : 0) + get_vol(array.get(levels, x), array.get(levels, x + 1), body_top, high[bars], topwick, topwickvol) / 2 + get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, low[bars], bottomwick, bottomwickvol) / 2)
+        array.set(volumes_calc, x + cnum, array.get(volumes_calc, x + cnum) + (itsgreen ? 0 : get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, body_top, body, bodyvol)) + get_vol(array.get(levels, x), array.get(levels, x + 1), body_top, high[bars], topwick, topwickvol) / 2 + get_vol(array.get(levels, x), array.get(levels, x + 1), body_bot, low[bars], bottomwick, bottomwickvol) / 2)
+
+totalvols_calc = array.new_float(cnum, 0.)
+for x = 0 to cnum - 1 by 1
+    array.set(totalvols_calc, x, array.get(volumes_calc, x) + array.get(volumes_calc, x + cnum))
+
+int poc_index = array.indexof(totalvols_calc, array.max(totalvols_calc))
+float current_poc_level = (array.get(levels, poc_index) + array.get(levels, poc_index + 1)) / 2
+
+// Signal Logic - POC Breakout Variables
+var bool wasAbovePOC = false
+var bool wasBelowPOC = false
+
+// Track position relative to POC
+if close[1] > current_poc_level[1]
+    wasAbovePOC := true
+    wasBelowPOC := false
+else if close[1] < current_poc_level[1]
+    wasBelowPOC := true
+    wasAbovePOC := false
+
+// Signal conditions
+// BUY: Giá phá vỡ POC từ dưới lên (bullish breakout)
+buyCondition = wasBelowPOC and close > current_poc_level
+
+// SELL: Giá phá vỡ POC từ trên xuống (bearish breakdown)
+sellCondition = wasAbovePOC and close < current_poc_level
+
+// Generate signals
+buySignal = buyCondition
+sellSignal = sellCondition
+
+// Reset tracking after signal
+if buySignal
+    wasBelowPOC := false
+if sellSignal
+    wasAbovePOC := false
+
 if barstate.islast
     // calculate/get volume for each channel and candle
     volumes = array.new_float(cnum * 2, 0.)
@@ -109,3 +161,11 @@ if barstate.islast
         poc_label := label.new(bar_index + 15, poc_level, 
                                text = "POC: " + str.tostring(math.round_to_mintick(poc_level)),
                                style = close >= poc_level ? label.style_label_up : label.style_label_down)
+
+// Plot signals
+plotshape(buySignal, title="VP BUY", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
+plotshape(sellSignal, title="VP SELL", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
+
+// Alerts
+alertcondition(buySignal, title="Volume Profile Buy Signal", message="VP Buy: Price breaks above POC")
+alertcondition(sellSignal, title="Volume Profile Sell Signal", message="VP Sell: Price breaks below POC")
