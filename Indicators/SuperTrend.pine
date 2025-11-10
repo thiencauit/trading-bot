@@ -1,19 +1,188 @@
 //@version=6
-indicator("Supertrend", overlay = true, timeframe = "", timeframe_gaps = true)
+indicator("SuperTrend Advanced", overlay = true)
 
-atrPeriod = input.int(10,    "ATR Length", minval = 1)
-factor =    input.float(3.0, "Factor",     minval = 0.01, step = 0.01)
+// ═══════════════════════════════════════════════════════════════════════════════════
+// SETTINGS - CÀI ĐẶT
+// ═══════════════════════════════════════════════════════════════════════════════════
 
-[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+// --- SuperTrend Settings ---
+string grp1 = "SuperTrend Settings"
+atrPeriod1 = input.int(10, "ATR Length 1", minval = 1, group = grp1)
+factor1 = input.float(3.0, "Factor 1", minval = 0.01, step = 0.01, group = grp1)
 
-supertrend := barstate.isfirst ? na : supertrend
-upTrend =    plot(direction < 0 ? supertrend : na, "Up Trend",   color = color.green, style = plot.style_linebr)
-downTrend =  plot(direction < 0 ? na : supertrend, "Down Trend", color = color.red,   style = plot.style_linebr)
-bodyMiddle = plot(barstate.isfirst ? na : (open + close) / 2, "Body Middle",display = display.none)
+// --- Multiple SuperTrend ---
+string grp2 = "Multiple SuperTrend (Optional)"
+enableST2 = input.bool(false, "Enable SuperTrend 2", group = grp2)
+atrPeriod2 = input.int(14, "ATR Length 2", minval = 1, group = grp2)
+factor2 = input.float(2.0, "Factor 2", minval = 0.01, step = 0.01, group = grp2)
 
-fill(bodyMiddle, upTrend,   title = "Uptrend background",   color = color.new(color.green, 90), fillgaps = false)
-fill(bodyMiddle, downTrend, title = "Downtrend background", color = color.new(color.red,   90), fillgaps = false)
+enableST3 = input.bool(false, "Enable SuperTrend 3", group = grp2)
+atrPeriod3 = input.int(7, "ATR Length 3", minval = 1, group = grp2)
+factor3 = input.float(4.0, "Factor 3", minval = 0.01, step = 0.01, group = grp2)
 
-alertcondition(direction[1] > direction, title='Downtrend to Uptrend', message='The Supertrend value switched from Downtrend to Uptrend ')
-alertcondition(direction[1] < direction, title='Uptrend to Downtrend', message='The Supertrend value switched from Uptrend to Downtrend')
-alertcondition(direction[1] != direction, title='Trend Change', message='The Supertrend value switched from Uptrend to Downtrend or vice versa')
+// --- Multi-Timeframe ---
+string grp3 = "Multi-Timeframe"
+enableMTF = input.bool(false, "Enable Multi-Timeframe", group = grp3)
+mtfTimeframe = input.timeframe("60", "Higher Timeframe", group = grp3)
+
+// --- Signals ---
+string grp4 = "Signals & Alerts"
+showSignals = input.bool(true, "Show Buy/Sell Signals", group = grp4)
+showLabels = input.bool(true, "Show Labels", group = grp4)
+
+// --- Visual Settings ---
+string grp5 = "Visual Settings"
+colorUptrend = input.color(color.new(color.green, 0), "Uptrend Color", group = grp5)
+colorDowntrend = input.color(color.new(color.red, 0), "Downtrend Color", group = grp5)
+colorBuySignal = input.color(color.new(color.lime, 0), "Buy Signal Color", group = grp5)
+colorSellSignal = input.color(color.new(color.red, 0), "Sell Signal Color", group = grp5)
+showFill = input.bool(true, "Show Background Fill", group = grp5)
+fillTransparency = input.int(90, "Fill Transparency", minval = 0, maxval = 100, group = grp5)
+
+// --- Dashboard ---
+string grp6 = "Dashboard"
+showDashboard = input.bool(true, "Show Dashboard", group = grp6)
+dashPosition = input.string("top_right", "Position", options = ["top_left", "top_right", "bottom_left", "bottom_right"], group = grp6)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - TÍNH TOÁN
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// --- SuperTrend 1 (Main) ---
+[supertrend1, direction1] = ta.supertrend(factor1, atrPeriod1)
+supertrend1 := barstate.isfirst ? na : supertrend1
+
+// --- SuperTrend 2 (Optional) ---
+float supertrend2 = na
+float direction2 = na
+if enableST2
+    [st2, dir2] = ta.supertrend(factor2, atrPeriod2)
+    supertrend2 := barstate.isfirst ? na : st2
+    direction2 := dir2
+
+// --- SuperTrend 3 (Optional) ---
+float supertrend3 = na
+float direction3 = na
+if enableST3
+    [st3, dir3] = ta.supertrend(factor3, atrPeriod3)
+    supertrend3 := barstate.isfirst ? na : st3
+    direction3 := dir3
+
+// --- Multi-Timeframe SuperTrend ---
+float supertrendMTF = na
+float directionMTF = na
+if enableMTF
+    [stMTF, dirMTF] = request.security(syminfo.tickerid, mtfTimeframe, ta.supertrend(factor1, atrPeriod1))
+    supertrendMTF := stMTF
+    directionMTF := dirMTF
+
+// --- Signals ---
+buySignal = direction1[1] > direction1 and not na(supertrend1)
+sellSignal = direction1[1] < direction1 and not na(supertrend1)
+
+// --- Trend Status ---
+isUptrend = direction1 < 0
+isDowntrend = direction1 > 0
+
+// --- ATR Value ---
+atrValue = ta.atr(atrPeriod1)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// PLOTTING - VẼ BIỂU ĐỒ
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// --- SuperTrend 1 ---
+upTrend1 = plot(direction1 < 0 ? supertrend1 : na, "Up Trend 1", color = colorUptrend, style = plot.style_linebr, linewidth = 2)
+downTrend1 = plot(direction1 < 0 ? na : supertrend1, "Down Trend 1", color = colorDowntrend, style = plot.style_linebr, linewidth = 2)
+bodyMiddle = plot(barstate.isfirst ? na : (open + close) / 2, "Body Middle", display = display.none)
+
+// Background Fill
+fill(bodyMiddle, upTrend1, title = "Uptrend Background", color = showFill ? color.new(colorUptrend, fillTransparency) : na, fillgaps = false)
+fill(bodyMiddle, downTrend1, title = "Downtrend Background", color = showFill ? color.new(colorDowntrend, fillTransparency) : na, fillgaps = false)
+
+// --- SuperTrend 2 ---
+plot(enableST2 and direction2 < 0 ? supertrend2 : na, "Up Trend 2", color = color.new(color.blue, 0), style = plot.style_line, linewidth = 1)
+plot(enableST2 and direction2 >= 0 ? supertrend2 : na, "Down Trend 2", color = color.new(color.orange, 0), style = plot.style_line, linewidth = 1)
+
+// --- SuperTrend 3 ---
+plot(enableST3 and direction3 < 0 ? supertrend3 : na, "Up Trend 3", color = color.new(color.aqua, 0), style = plot.style_circles, linewidth = 1)
+plot(enableST3 and direction3 >= 0 ? supertrend3 : na, "Down Trend 3", color = color.new(color.fuchsia, 0), style = plot.style_circles, linewidth = 1)
+
+// --- Multi-Timeframe SuperTrend ---
+plot(enableMTF and directionMTF < 0 ? supertrendMTF : na, "MTF Up Trend", color = color.new(color.lime, 50), style = plot.style_stepline, linewidth = 3)
+plot(enableMTF and directionMTF >= 0 ? supertrendMTF : na, "MTF Down Trend", color = color.new(color.red, 50), style = plot.style_stepline, linewidth = 3)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// SIGNALS - TÍN HIỆU
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// --- Buy/Sell Arrows ---
+plotshape(showSignals and buySignal, title = "Buy Signal", location = location.belowbar, color = colorBuySignal, style = shape.labelup, text = "BUY", textcolor = color.white, size = size.small)
+plotshape(showSignals and sellSignal, title = "Sell Signal", location = location.abovebar, color = colorSellSignal, style = shape.labeldown, text = "SELL", textcolor = color.white, size = size.small)
+
+// --- Labels with Price ---
+if showLabels and showSignals and buySignal
+    label.new(bar_index, low, "BUY\n" + str.tostring(close, "#.##"), 
+              color = colorBuySignal, 
+              style = label.style_label_up, 
+              textcolor = color.white, 
+              size = size.small)
+
+if showLabels and showSignals and sellSignal
+    label.new(bar_index, high, "SELL\n" + str.tostring(close, "#.##"), 
+              color = colorSellSignal, 
+              style = label.style_label_down, 
+              textcolor = color.white, 
+              size = size.small)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// DASHBOARD - BẢNG THÔNG TIN
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+if showDashboard
+    var table dashboard = table.new(
+         dashPosition == "top_left" ? position.top_left : 
+         dashPosition == "top_right" ? position.top_right : 
+         dashPosition == "bottom_left" ? position.bottom_left : position.bottom_right, 
+         2, 6, bgcolor = color.new(color.black, 85), frame_color = color.gray, frame_width = 1, border_width = 1)
+    
+    if barstate.islast
+        // Header
+        table.cell(dashboard, 0, 0, "SuperTrend Status", text_color = color.white, text_size = size.normal, bgcolor = color.new(color.gray, 70))
+        table.cell(dashboard, 1, 0, "", text_color = color.white, text_size = size.normal, bgcolor = color.new(color.gray, 70))
+        
+        // Trend
+        trendText = isUptrend ? "UPTREND ▲" : "DOWNTREND ▼"
+        trendColor = isUptrend ? colorUptrend : colorDowntrend
+        table.cell(dashboard, 0, 1, "Trend", text_color = color.gray, text_size = size.small)
+        table.cell(dashboard, 1, 1, trendText, text_color = trendColor, text_size = size.normal)
+        
+        // SuperTrend Value
+        table.cell(dashboard, 0, 2, "ST Level", text_color = color.gray, text_size = size.small)
+        table.cell(dashboard, 1, 2, str.tostring(supertrend1, "#.##"), text_color = color.white, text_size = size.small)
+        
+        // ATR
+        table.cell(dashboard, 0, 3, "ATR", text_color = color.gray, text_size = size.small)
+        table.cell(dashboard, 1, 3, str.tostring(atrValue, "#.##"), text_color = color.white, text_size = size.small)
+        
+        // Distance to SuperTrend
+        distance = close - supertrend1
+        distancePercent = (distance / close) * 100
+        table.cell(dashboard, 0, 4, "Distance", text_color = color.gray, text_size = size.small)
+        table.cell(dashboard, 1, 4, str.tostring(distancePercent, "#.##") + "%", 
+                   text_color = distance > 0 ? color.lime : color.red, text_size = size.small)
+        
+        // MTF Status
+        if enableMTF
+            mtfTrendText = directionMTF < 0 ? "UP ▲" : "DOWN ▼"
+            mtfTrendColor = directionMTF < 0 ? color.lime : color.red
+            table.cell(dashboard, 0, 5, "MTF " + mtfTimeframe, text_color = color.gray, text_size = size.small)
+            table.cell(dashboard, 1, 5, mtfTrendText, text_color = mtfTrendColor, text_size = size.small)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// ALERTS - CẢNH BÁO
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+alertcondition(buySignal, title = 'Buy Signal', message = '🟢 SuperTrend Buy Signal - Price: {{close}} - Time: {{time}}')
+alertcondition(sellSignal, title = 'Sell Signal', message = '🔴 SuperTrend Sell Signal - Price: {{close}} - Time: {{time}}')
+alertcondition(direction1[1] != direction1, title = 'Trend Change', message = '⚠️ SuperTrend Direction Changed - New Trend: {{plot("direction1")}} - Price: {{close}}')
