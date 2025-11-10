@@ -46,6 +46,46 @@ bbUpperBand = plot(smoothingMA + smoothingStDev, title = "Upper Bollinger Band",
 bbLowerBand = plot(smoothingMA - smoothingStDev, title = "Lower Bollinger Band", color=color.green, display = isBB ? display.all : display.none, editable = isBB)
 fill(bbUpperBand, bbLowerBand, color= isBB ? color.new(color.green, 90) : na, title="Bollinger Bands Background Fill", display = isBB ? display.all : display.none, editable = isBB)
 
+// Signal Logic - Overbought/Oversold Breakout
+// Variables to track overbought/oversold states
+var bool wasOverbought = false
+var bool wasOversold = false
+
+// Overbought/Oversold levels
+overbought_level = 70
+oversold_level = 30
+
+// Update overbought/oversold tracking
+if rsi > overbought_level
+    wasOverbought := true
+if rsi < oversold_level
+    wasOversold := true
+
+// Signal conditions
+// BUY: RSI vượt lên trên oversold (sau khi đã ở dưới oversold)
+buyCondition = wasOversold and rsi > oversold_level
+
+// SELL: RSI giảm xuống dưới overbought (sau khi đã ở trên overbought)
+sellCondition = wasOverbought and rsi < overbought_level
+
+// Generate signals
+buySignal = buyCondition
+sellSignal = sellCondition
+
+// Reset state tracking after signal
+if buySignal
+    wasOversold := false
+if sellSignal
+    wasOverbought := false
+
+// Plot signals
+plotshape(buySignal, title="RSI BUY", text="BUY", style=shape.labelup, location=location.bottom, color=color.new(color.green, 0), textcolor=color.white, size=size.normal)
+plotshape(sellSignal, title="RSI SELL", text="SELL", style=shape.labeldown, location=location.top, color=color.new(color.red, 0), textcolor=color.white, size=size.normal)
+
+// Alerts for breakout signals
+alertcondition(buySignal, title="RSI Buy Signal", message="RSI Buy: Breakout from Oversold")
+alertcondition(sellSignal, title="RSI Sell Signal", message="RSI Sell: Breakdown from Overbought")
+
 // Divergence
 lookbackRight = 5
 lookbackLeft = 5
