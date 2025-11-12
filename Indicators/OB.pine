@@ -1,0 +1,124 @@
+//@version=5
+indicator("OB Indicator", overlay=true, max_boxes_count=500)
+
+// Input parameters
+N = input.int(3, "Số cây nến xác nhận (N)", minval=1, maxval=10)
+showBearishOB = input.bool(true, "Hiển thị Bearish OB")
+showBullishOB = input.bool(true, "Hiển thị Bullish OB")
+obExtend = input.int(20, "Độ dài OB", minval=5, maxval=100)
+
+// Colors
+bearishColor = input.color(color.new(color.red, 80), "Màu Bearish OB")
+bullishColor = input.color(color.new(color.green, 80), "Màu Bullish OB")
+
+// Arrays to store OB boxes
+var box[] bearishOBs = array.new_box()
+var box[] bullishOBs = array.new_box()
+
+// Function to check if candle is bullish
+isBullish(index) =>
+    close[index] > open[index]
+
+// Function to check if candle is bearish
+isBearish(index) =>
+    close[index] < open[index]
+
+// Function to check if N candles create lower highs after a bullish candle
+checkLowerHighs(startIndex, n) =>
+    valid = true
+    if startIndex < n
+        valid := false
+    else
+        lastHigh = high[startIndex]
+        for i = 1 to n
+            if high[startIndex - i] >= lastHigh
+                valid := false
+                break
+            lastHigh := high[startIndex - i]
+    valid
+
+// Function to check if N candles create higher lows after a bearish candle
+checkHigherLows(startIndex, n) =>
+    valid = true
+    if startIndex < n
+        valid := false
+    else
+        lastLow = low[startIndex]
+        for i = 1 to n
+            if low[startIndex - i] <= lastLow
+                valid := false
+                break
+            lastLow := low[startIndex - i]
+    valid
+
+// Detect Bearish OB
+// Điều kiện: 1 cây nến tăng cuối cùng của trend tăng, sau đó N cây nến tạo đỉnh thấp dần
+if showBearishOB
+    // Check if current candle is bullish and N candles after create lower highs
+    if isBullish(N) and checkLowerHighs(N, N)
+        // Draw bearish OB box from the bullish candle
+        obTop = high[N]
+        obBottom = low[N]
+        obLeft = bar_index - N
+        obRight = bar_index + obExtend
+        
+        bearishBox = box.new(obLeft, obTop, obRight, obBottom, border_color=color.red, bgcolor=bearishColor, border_width=1, border_style=line.style_dashed)
+        array.push(bearishOBs, bearishBox)
+        
+        // Label for bearish OB
+        label.new(obLeft, obTop, "Bearish OB", 
+                  style=label.style_label_down, 
+                  color=color.red, 
+                  textcolor=color.white,
+                  size=size.small)
+
+// Detect Bullish OB
+// Điều kiện: 1 cây nến giảm cuối cùng của trend giảm, sau đó N cây nến tạo đáy cao dần
+if showBullishOB
+    // Check if current candle is bearish and N candles after create higher lows
+    if isBearish(N) and checkHigherLows(N, N)
+        // Draw bullish OB box from the bearish candle
+        obTop = high[N]
+        obBottom = low[N]
+        obLeft = bar_index - N
+        obRight = bar_index + obExtend
+        
+        bullishBox = box.new(obLeft, obTop, obRight, obBottom, border_color=color.green, bgcolor=bullishColor, border_width=1, border_style=line.style_dashed)
+        array.push(bullishOBs, bullishBox)
+        
+        // Label for bullish OB
+        label.new(obLeft, obBottom, "Bullish OB", 
+                  style=label.style_label_up, 
+                  color=color.green, 
+                  textcolor=color.white,
+                  size=size.small)
+
+// Check and remove OBs when price breaks through them
+// Remove Bearish OBs when price breaks above
+if array.size(bearishOBs) > 0
+    for i = array.size(bearishOBs) - 1 to 0
+        boxObj = array.get(bearishOBs, i)
+        boxTop = box.get_top(boxObj)
+        // If price closes above the bearish OB, remove it
+        if close > boxTop
+            box.delete(boxObj)
+            array.remove(bearishOBs, i)
+
+// Remove Bullish OBs when price breaks below
+if array.size(bullishOBs) > 0
+    for i = array.size(bullishOBs) - 1 to 0
+        boxObj = array.get(bullishOBs, i)
+        boxBottom = box.get_bottom(boxObj)
+        // If price closes below the bullish OB, remove it
+        if close < boxBottom
+            box.delete(boxObj)
+            array.remove(bullishOBs, i)
+
+// Clean up old boxes to prevent memory issues
+if array.size(bearishOBs) > 50
+    oldBox = array.shift(bearishOBs)
+    box.delete(oldBox)
+
+if array.size(bullishOBs) > 50
+    oldBox = array.shift(bullishOBs)
+    box.delete(oldBox)
