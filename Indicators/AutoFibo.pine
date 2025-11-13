@@ -1,0 +1,202 @@
+//@version=5
+indicator("Auto Fibonacci Retracement", overlay=true, max_lines_count=500)
+
+// === Input Settings ===
+lookback = input.int(50, "Lookback Period", minval=10, maxval=500, 
+                      tooltip="Số nến để tìm đỉnh/đáy")
+showLevels = input.bool(true, "Show Fibonacci Levels")
+showLabels = input.bool(true, "Show Level Labels")
+
+// Fibonacci levels
+fib_0 = input.float(0.0, "Level 0%", group="Fibonacci Levels")
+fib_236 = input.float(0.236, "Level 23.6%", group="Fibonacci Levels")
+fib_382 = input.float(0.382, "Level 38.2%", group="Fibonacci Levels")
+fib_500 = input.float(0.5, "Level 50%", group="Fibonacci Levels")
+fib_618 = input.float(0.618, "Level 61.8%", group="Fibonacci Levels")
+fib_786 = input.float(0.786, "Level 78.6%", group="Fibonacci Levels")
+fib_100 = input.float(1.0, "Level 100%", group="Fibonacci Levels")
+
+// Colors
+color_0 = input.color(color.new(color.red, 50), "Color 0%", group="Colors")
+color_236 = input.color(color.new(color.orange, 50), "Color 23.6%", group="Colors")
+color_382 = input.color(color.new(color.yellow, 50), "Color 38.2%", group="Colors")
+color_500 = input.color(color.new(color.green, 50), "Color 50%", group="Colors")
+color_618 = input.color(color.new(color.blue, 50), "Color 61.8%", group="Colors")
+color_786 = input.color(color.new(color.purple, 50), "Color 78.6%", group="Colors")
+color_100 = input.color(color.new(color.red, 50), "Color 100%", group="Colors")
+
+// === Trading Settings ===
+showSignals = input.bool(true, "Show Trading Signals", group="Trading")
+buyZone = input.string("0.618", "Buy Zone (Retracement Level)", 
+                       options=["0.382", "0.5", "0.618", "0.786"], group="Trading",
+                       tooltip="Mức Fibonacci để tìm điểm mua")
+confirmationBars = input.int(2, "Confirmation Bars", minval=1, maxval=5, group="Trading",
+                              tooltip="Số nến xác nhận tín hiệu")
+useVolumeConfirm = input.bool(true, "Volume Confirmation", group="Trading",
+                               tooltip="Yêu cầu volume tăng để xác nhận")
+
+// === Functions ===
+
+// Tìm đáy gần nhất (lowest low)
+findBottom(len) =>
+    float bottom = high[1]
+    int bottomBar = 1
+    for i = 1 to len
+        if low[i] < bottom
+            bottom := low[i]
+            bottomBar := i
+    [bottom, bottomBar]
+
+// Tìm đỉnh gần nhất sau đáy (highest high)
+findTop(len) =>
+    float top = low[1]
+    int topBar = 1
+    for i = 1 to len
+        if high[i] > top
+            top := high[i]
+            topBar := i
+    [top, topBar]
+
+// Kiểm tra xu hướng tăng (price moved up from bottom to top)
+isUptrend(bottomBar, topBar) =>
+    topBar < bottomBar  // Top xảy ra sau đáy (bar index nhỏ hơn)
+
+// === Main Logic ===
+
+// Tìm đáy và đỉnh
+[bottom, bottomBar] = findBottom(lookback)
+[top, topBar] = findTop(lookback)
+
+// Kiểm tra điều kiện uptrend: đáy phải xảy ra trước đỉnh
+validUptrend = isUptrend(bottomBar, topBar) and top > bottom
+
+// Tính giá trị các mức Fibonacci
+var float level_0 = na
+var float level_236 = na
+var float level_382 = na
+var float level_500 = na
+var float level_618 = na
+var float level_786 = na
+var float level_100 = na
+
+if validUptrend
+    diff = top - bottom
+    level_0 := top
+    level_236 := top - (diff * fib_236)
+    level_382 := top - (diff * fib_382)
+    level_500 := top - (diff * fib_500)
+    level_618 := top - (diff * fib_618)
+    level_786 := top - (diff * fib_786)
+    level_100 := bottom
+
+// === Trading Signals Logic ===
+
+// Xác định mức Fibonacci target cho BUY
+float buyLevel = na
+if buyZone == "0.382"
+    buyLevel := level_382
+else if buyZone == "0.5"
+    buyLevel := level_500
+else if buyZone == "0.618"
+    buyLevel := level_618
+else if buyZone == "0.786"
+    buyLevel := level_786
+else
+    buyLevel := level_618
+
+// Volume confirmation
+avgVolume = ta.sma(volume, 20)
+volumeIncrease = volume > avgVolume * 1.2
+
+// BUY Signal Logic (Uptrend continuation after retracement)
+// Điều kiện:
+// 1. Giá đã retracement xuống vùng mục tiêu (buyLevel)
+// 2. Giá bắt đầu tăng trở lại (nến tăng)
+// 3. Có xác nhận volume nếu bật
+priceTouchedBuyZone = low <= buyLevel and low >= buyLevel * 0.98  // Cho phép sai số 2%
+bullishCandle = close > open
+priceAboveBuyLevel = close > buyLevel
+
+buySignal = validUptrend and priceTouchedBuyZone and bullishCandle and priceAboveBuyLevel
+if useVolumeConfirm
+    buySignal := buySignal and volumeIncrease
+
+// SELL Signal Logic (Take profit hoặc breakout failed)
+// Điều kiện SELL 1: Giá chạm lại vùng 0% (đỉnh cũ) - Take Profit
+// Điều kiện SELL 2: Giá phá vỡ xuống dưới 100% (đáy) - Stop Loss
+sellTakeProfit = validUptrend and high >= level_0 * 0.99 and close < level_0  // Chạm đỉnh nhưng không vượt
+sellStopLoss = validUptrend and close < level_100  // Phá vỡ đáy
+bearishCandle = close < open
+
+sellSignal = (sellTakeProfit or sellStopLoss) and bearishCandle
+if useVolumeConfirm and sellStopLoss
+    sellSignal := sellSignal and volumeIncrease
+
+// Alert conditions
+alertcondition(buySignal, "BUY Signal", "Fibonacci BUY Signal - Price bounced from retracement level")
+alertcondition(sellSignal, "SELL Signal", "Fibonacci SELL Signal - Take profit or Stop loss triggered")
+
+// === Plotting ===
+
+// Plot các mức Fibonacci
+plot(showLevels and validUptrend ? level_0 : na, "0%", color=color_0, linewidth=2, style=plot.style_line)
+plot(showLevels and validUptrend ? level_236 : na, "23.6%", color=color_236, linewidth=1, style=plot.style_line)
+plot(showLevels and validUptrend ? level_382 : na, "38.2%", color=color_382, linewidth=1, style=plot.style_line)
+plot(showLevels and validUptrend ? level_500 : na, "50%", color=color_500, linewidth=2, style=plot.style_line)
+plot(showLevels and validUptrend ? level_618 : na, "61.8%", color=color_618, linewidth=1, style=plot.style_line)
+plot(showLevels and validUptrend ? level_786 : na, "78.6%", color=color_786, linewidth=1, style=plot.style_line)
+plot(showLevels and validUptrend ? level_100 : na, "100%", color=color_100, linewidth=2, style=plot.style_line)
+
+// Vẽ điểm đáy và đỉnh
+plotshape(validUptrend and bar_index == bar_index - bottomBar, "Bottom", shape.triangleup, 
+          location.belowbar, color.new(color.green, 0), size=size.small, text="Bottom")
+plotshape(validUptrend and bar_index == bar_index - topBar, "Top", shape.triangledown, 
+          location.abovebar, color.new(color.red, 0), size=size.small, text="Top")
+
+// Vẽ tín hiệu BUY và SELL
+plotshape(showSignals and buySignal, "BUY", shape.labelup, location.belowbar, 
+          color.new(color.green, 0), text="BUY", textcolor=color.white, size=size.normal)
+plotshape(showSignals and sellSignal, "SELL", shape.labeldown, location.abovebar, 
+          color.new(color.red, 0), text="SELL", textcolor=color.white, size=size.normal)
+
+// Highlight buy zone
+buyZoneActive = validUptrend and low <= buyLevel and high >= buyLevel
+sellZoneActive = validUptrend and (sellTakeProfit or sellStopLoss)
+
+bgcolor(buyZoneActive ? color.new(color.green, 90) : na, title="Buy Zone")
+bgcolor(sellZoneActive ? color.new(color.red, 90) : na, title="Sell Zone")
+
+// Labels cho các mức
+if showLabels and validUptrend and barstate.islast
+    label.new(bar_index, level_0, "0% (" + str.tostring(level_0, "#.##") + ")", 
+              style=label.style_label_left, color=color_0, textcolor=color.white, size=size.small)
+    label.new(bar_index, level_236, "23.6% (" + str.tostring(level_236, "#.##") + ")", 
+              style=label.style_label_left, color=color_236, textcolor=color.white, size=size.small)
+    label.new(bar_index, level_382, "38.2% (" + str.tostring(level_382, "#.##") + ")", 
+              style=label.style_label_left, color=color_382, textcolor=color.white, size=size.small)
+    label.new(bar_index, level_500, "50% (" + str.tostring(level_500, "#.##") + ")", 
+              style=label.style_label_left, color=color_500, textcolor=color.white, size=size.small)
+    label.new(bar_index, level_618, "61.8% (" + str.tostring(level_618, "#.##") + ")", 
+              style=label.style_label_left, color=color_618, textcolor=color.white, size=size.small)
+    label.new(bar_index, level_786, "78.6% (" + str.tostring(level_786, "#.##") + ")", 
+              style=label.style_label_left, color=color_786, textcolor=color.white, size=size.small)
+    label.new(bar_index, level_100, "100% (" + str.tostring(level_100, "#.##") + ")", 
+              style=label.style_label_left, color=color_100, textcolor=color.white, size=size.small)
+
+// Thông tin debug
+if validUptrend and barstate.islast
+    var table debugTable = table.new(position.top_right, 2, 7, bgcolor=color.new(color.black, 80))
+    table.cell(debugTable, 0, 0, "Bottom:", text_color=color.white)
+    table.cell(debugTable, 1, 0, str.tostring(bottom, "#.##"), text_color=color.green)
+    table.cell(debugTable, 0, 1, "Top:", text_color=color.white)
+    table.cell(debugTable, 1, 1, str.tostring(top, "#.##"), text_color=color.red)
+    table.cell(debugTable, 0, 2, "Range:", text_color=color.white)
+    table.cell(debugTable, 1, 2, str.tostring(top - bottom, "#.##"), text_color=color.yellow)
+    table.cell(debugTable, 0, 3, "Buy Zone:", text_color=color.white)
+    table.cell(debugTable, 1, 3, str.tostring(buyLevel, "#.##") + " (" + buyZone + ")", text_color=color.aqua)
+    table.cell(debugTable, 0, 4, "Target:", text_color=color.white)
+    table.cell(debugTable, 1, 4, str.tostring(level_0, "#.##") + " (0%)", text_color=color.lime)
+    table.cell(debugTable, 0, 5, "Stop Loss:", text_color=color.white)
+    table.cell(debugTable, 1, 5, str.tostring(level_100, "#.##") + " (100%)", text_color=color.orange)
+    table.cell(debugTable, 0, 6, "Lookback:", text_color=color.white)
+    table.cell(debugTable, 1, 6, str.tostring(lookback), text_color=color.white)
