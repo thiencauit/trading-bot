@@ -1,202 +1,221 @@
 //@version=5
 indicator("Auto Fibonacci Retracement", overlay=true, max_lines_count=500)
 
-// === Input Settings ===
-lookback = input.int(50, "Lookback Period", minval=10, maxval=500, 
-                      tooltip="Số nến để tìm đỉnh/đáy")
+// Input settings
+lookback = input.int(50, "Lookback Period", minval=10, maxval=500)
 showLevels = input.bool(true, "Show Fibonacci Levels")
-showLabels = input.bool(true, "Show Level Labels")
+showLabels = input.bool(true, "Show Labels")
 
 // Fibonacci levels
-fib_0 = input.float(0.0, "Level 0%", group="Fibonacci Levels")
-fib_236 = input.float(0.236, "Level 23.6%", group="Fibonacci Levels")
-fib_382 = input.float(0.382, "Level 38.2%", group="Fibonacci Levels")
-fib_500 = input.float(0.5, "Level 50%", group="Fibonacci Levels")
-fib_618 = input.float(0.618, "Level 61.8%", group="Fibonacci Levels")
-fib_786 = input.float(0.786, "Level 78.6%", group="Fibonacci Levels")
-fib_100 = input.float(1.0, "Level 100%", group="Fibonacci Levels")
+fib_0 = input.float(0.0, "Level 0", group="Fibonacci Levels")
+fib_236 = input.float(0.236, "Level 0.236", group="Fibonacci Levels")
+fib_382 = input.float(0.382, "Level 0.382", group="Fibonacci Levels")
+fib_500 = input.float(0.500, "Level 0.5", group="Fibonacci Levels")
+fib_618 = input.float(0.618, "Level 0.618", group="Fibonacci Levels")
+fib_786 = input.float(0.786, "Level 0.786", group="Fibonacci Levels")
+fib_1 = input.float(1.0, "Level 1", group="Fibonacci Levels")
 
 // Colors
-color_0 = input.color(color.new(color.red, 50), "Color 0%", group="Colors")
-color_236 = input.color(color.new(color.orange, 50), "Color 23.6%", group="Colors")
-color_382 = input.color(color.new(color.yellow, 50), "Color 38.2%", group="Colors")
-color_500 = input.color(color.new(color.green, 50), "Color 50%", group="Colors")
-color_618 = input.color(color.new(color.blue, 50), "Color 61.8%", group="Colors")
-color_786 = input.color(color.new(color.purple, 50), "Color 78.6%", group="Colors")
-color_100 = input.color(color.new(color.red, 50), "Color 100%", group="Colors")
+color_0 = input.color(color.new(color.red, 0), "Color 0%", group="Colors")
+color_236 = input.color(color.new(color.orange, 0), "Color 23.6%", group="Colors")
+color_382 = input.color(color.new(color.yellow, 0), "Color 38.2%", group="Colors")
+color_500 = input.color(color.new(color.white, 0), "Color 50%", group="Colors")
+color_618 = input.color(color.new(color.blue, 0), "Color 61.8%", group="Colors")
+color_786 = input.color(color.new(color.purple, 0), "Color 78.6%", group="Colors")
+color_1 = input.color(color.new(color.green, 0), "Color 100%", group="Colors")
 
-// === Trading Settings ===
-showSignals = input.bool(true, "Show Trading Signals", group="Trading")
-buyZone = input.string("0.618", "Buy Zone (Retracement Level)", 
-                       options=["0.382", "0.5", "0.618", "0.786"], group="Trading",
-                       tooltip="Mức Fibonacci để tìm điểm mua")
-confirmationBars = input.int(2, "Confirmation Bars", minval=1, maxval=5, group="Trading",
-                              tooltip="Số nến xác nhận tín hiệu")
-useVolumeConfirm = input.bool(true, "Volume Confirmation", group="Trading",
-                               tooltip="Yêu cầu volume tăng để xác nhận")
+// Find lowest low (đáy) and highest high (đỉnh) in lookback period
+var float swingLow = na
+var float swingHigh = na
+var int lowBar = na
+var int highBar = na
 
-// === Functions ===
+// Tìm đáy gần nhất
+lowestPrice = ta.lowest(low, lookback)
+if low == lowestPrice
+    swingLow := low
+    lowBar := bar_index
 
-// Tìm đáy gần nhất (lowest low)
-findBottom(len) =>
-    float bottom = high[1]
-    int bottomBar = 1
-    for i = 1 to len
-        if low[i] < bottom
-            bottom := low[i]
-            bottomBar := i
-    [bottom, bottomBar]
+// Tìm đỉnh gần nhất
+highestPrice = ta.highest(high, lookback)
+if high == highestPrice
+    swingHigh := high
+    highBar := bar_index
 
-// Tìm đỉnh gần nhất sau đáy (highest high)
-findTop(len) =>
-    float top = low[1]
-    int topBar = 1
-    for i = 1 to len
-        if high[i] > top
-            top := high[i]
-            topBar := i
-    [top, topBar]
-
-// Kiểm tra xu hướng tăng (price moved up from bottom to top)
-isUptrend(bottomBar, topBar) =>
-    topBar < bottomBar  // Top xảy ra sau đáy (bar index nhỏ hơn)
-
-// === Main Logic ===
-
-// Tìm đáy và đỉnh
-[bottom, bottomBar] = findBottom(lookback)
-[top, topBar] = findTop(lookback)
-
-// Kiểm tra điều kiện uptrend: đáy phải xảy ra trước đỉnh
-validUptrend = isUptrend(bottomBar, topBar) and top > bottom
-
-// Tính giá trị các mức Fibonacci
+// Calculate Fibonacci levels
 var float level_0 = na
 var float level_236 = na
 var float level_382 = na
 var float level_500 = na
 var float level_618 = na
 var float level_786 = na
-var float level_100 = na
+var float level_1 = na
 
-if validUptrend
-    diff = top - bottom
-    level_0 := top
-    level_236 := top - (diff * fib_236)
-    level_382 := top - (diff * fib_382)
-    level_500 := top - (diff * fib_500)
-    level_618 := top - (diff * fib_618)
-    level_786 := top - (diff * fib_786)
-    level_100 := bottom
+if not na(swingLow) and not na(swingHigh)
+    diff = swingHigh - swingLow
+    
+    // Fibonacci levels từ đáy tới đỉnh (uptrend retracement)
+    level_0 := swingHigh
+    level_236 := swingHigh - (diff * fib_236)
+    level_382 := swingHigh - (diff * fib_382)
+    level_500 := swingHigh - (diff * fib_500)
+    level_618 := swingHigh - (diff * fib_618)
+    level_786 := swingHigh - (diff * fib_786)
+    level_1 := swingLow
 
-// === Trading Signals Logic ===
+// Plot Fibonacci levels
+plot(showLevels ? level_0 : na, "0%", color=color_0, linewidth=2, style=plot.style_line)
+plot(showLevels ? level_236 : na, "23.6%", color=color_236, linewidth=1, style=plot.style_line)
+plot(showLevels ? level_382 : na, "38.2%", color=color_382, linewidth=1, style=plot.style_line)
+plot(showLevels ? level_500 : na, "50%", color=color_500, linewidth=2, style=plot.style_line)
+plot(showLevels ? level_618 : na, "61.8%", color=color_618, linewidth=1, style=plot.style_line)
+plot(showLevels ? level_786 : na, "78.6%", color=color_786, linewidth=1, style=plot.style_line)
+plot(showLevels ? level_1 : na, "100%", color=color_1, linewidth=2, style=plot.style_line)
 
-// Xác định mức Fibonacci target cho BUY
-float buyLevel = na
-if buyZone == "0.382"
-    buyLevel := level_382
-else if buyZone == "0.5"
-    buyLevel := level_500
-else if buyZone == "0.618"
-    buyLevel := level_618
-else if buyZone == "0.786"
-    buyLevel := level_786
+// ========================================
+// ENTRY RULES AT FIBONACCI LEVELS
+// ========================================
+
+// Trading signals at Fibonacci levels
+var bool inBuyZone = false
+var bool inSellZone = false
+
+// BUY SETUP (giá ở vùng Fibonacci 0.5-0.618)
+inBuyZone := not na(level_618) and close >= level_618 and close <= level_500
+
+// SELL SETUP (giá retest về vùng Fibonacci sau breakout)
+// Cho trường hợp downtrend, cần tính Fibonacci từ đỉnh xuống đáy
+inSellZone := not na(level_382) and close <= level_382 and close >= level_236
+
+// Additional indicators for entry confirmation
+ema5 = ta.ema(close, 5)
+ema10 = ta.ema(close, 10)
+ema20 = ta.ema(close, 20)
+
+rsi = ta.rsi(close, 14)
+[macdLine, signalLine, histLine] = ta.macd(close, 12, 26, 9)
+
+// LONG ENTRY CONDITIONS (tại vùng Fibo 0.5-0.618)
+// Theo quy tắc: ưu tiên 0.5–0.618 trùng OB + ≥3 điều kiện trigger
+longCondition1 = inBuyZone
+longCondition2 = ema5 > ema10 and ema10 > ema20 // EMA bullish
+longCondition3 = rsi > 50 or (rsi < 50 and rsi > rsi[1] and rsi[1] > rsi[2]) // RSI bullish or divergence
+longCondition4 = macdLine > signalLine or (histLine > histLine[1]) // MACD bullish
+longCondition5 = close > open // Bullish candle
+
+// Count conditions met
+var int longScore = 0
+if longCondition1
+    longScore := 1
 else
-    buyLevel := level_618
+    longScore := 0
 
-// Volume confirmation
-avgVolume = ta.sma(volume, 20)
-volumeIncrease = volume > avgVolume * 1.2
+if longCondition2
+    longScore += 1
+if longCondition3
+    longScore += 1
+if longCondition4
+    longScore += 1
+if longCondition5
+    longScore += 1
 
-// BUY Signal Logic (Uptrend continuation after retracement)
-// Điều kiện:
-// 1. Giá đã retracement xuống vùng mục tiêu (buyLevel)
-// 2. Giá bắt đầu tăng trở lại (nến tăng)
-// 3. Có xác nhận volume nếu bật
-priceTouchedBuyZone = low <= buyLevel and low >= buyLevel * 0.98  // Cho phép sai số 2%
-bullishCandle = close > open
-priceAboveBuyLevel = close > buyLevel
+// LONG signal: cần ít nhất 3/5 điều kiện (theo rule ≥3 trigger)
+var string lastSignalType = "" // Theo dõi lệnh cuối: "LONG" hoặc "SHORT"
+var bool prevLongSignal = false
 
-buySignal = validUptrend and priceTouchedBuyZone and bullishCandle and priceAboveBuyLevel
-if useVolumeConfirm
-    buySignal := buySignal and volumeIncrease
+// Chỉ cho phép LONG nếu lệnh trước không phải LONG (luân phiên)
+longSignal = longScore >= 3 and not prevLongSignal and lastSignalType != "LONG"
+if longSignal
+    prevLongSignal := true
+    lastSignalType := "LONG"
+if not inBuyZone
+    prevLongSignal := false
 
-// SELL Signal Logic (Take profit hoặc breakout failed)
-// Điều kiện SELL 1: Giá chạm lại vùng 0% (đỉnh cũ) - Take Profit
-// Điều kiện SELL 2: Giá phá vỡ xuống dưới 100% (đáy) - Stop Loss
-sellTakeProfit = validUptrend and high >= level_0 * 0.99 and close < level_0  // Chạm đỉnh nhưng không vượt
-sellStopLoss = validUptrend and close < level_100  // Phá vỡ đáy
-bearishCandle = close < open
+// SHORT ENTRY CONDITIONS (tại vùng Fibo retest)
+shortCondition1 = inSellZone
+shortCondition2 = ema5 < ema10 and ema10 < ema20 // EMA bearish
+shortCondition3 = rsi < 50 or (rsi > 50 and rsi < rsi[1] and rsi[1] < rsi[2]) // RSI bearish or divergence
+shortCondition4 = macdLine < signalLine or (histLine < histLine[1]) // MACD bearish
+shortCondition5 = close < open // Bearish candle
 
-sellSignal = (sellTakeProfit or sellStopLoss) and bearishCandle
-if useVolumeConfirm and sellStopLoss
-    sellSignal := sellSignal and volumeIncrease
+// Count conditions met
+var int shortScore = 0
+if shortCondition1
+    shortScore := 1
+else
+    shortScore := 0
 
-// Alert conditions
-alertcondition(buySignal, "BUY Signal", "Fibonacci BUY Signal - Price bounced from retracement level")
-alertcondition(sellSignal, "SELL Signal", "Fibonacci SELL Signal - Take profit or Stop loss triggered")
+if shortCondition2
+    shortScore += 1
+if shortCondition3
+    shortScore += 1
+if shortCondition4
+    shortScore += 1
+if shortCondition5
+    shortScore += 1
 
-// === Plotting ===
+// SHORT signal: cần ít nhất 3/5 điều kiện
+var bool prevShortSignal = false
 
-// Plot các mức Fibonacci
-plot(showLevels and validUptrend ? level_0 : na, "0%", color=color_0, linewidth=2, style=plot.style_line)
-plot(showLevels and validUptrend ? level_236 : na, "23.6%", color=color_236, linewidth=1, style=plot.style_line)
-plot(showLevels and validUptrend ? level_382 : na, "38.2%", color=color_382, linewidth=1, style=plot.style_line)
-plot(showLevels and validUptrend ? level_500 : na, "50%", color=color_500, linewidth=2, style=plot.style_line)
-plot(showLevels and validUptrend ? level_618 : na, "61.8%", color=color_618, linewidth=1, style=plot.style_line)
-plot(showLevels and validUptrend ? level_786 : na, "78.6%", color=color_786, linewidth=1, style=plot.style_line)
-plot(showLevels and validUptrend ? level_100 : na, "100%", color=color_100, linewidth=2, style=plot.style_line)
+// Chỉ cho phép SHORT nếu lệnh trước không phải SHORT (luân phiên)
+shortSignal = shortScore >= 3 and not prevShortSignal and lastSignalType != "SHORT"
+if shortSignal
+    prevShortSignal := true
+    lastSignalType := "SHORT"
+if not inSellZone
+    prevShortSignal := false
 
-// Vẽ điểm đáy và đỉnh
-plotshape(validUptrend and bar_index == bar_index - bottomBar, "Bottom", shape.triangleup, 
-          location.belowbar, color.new(color.green, 0), size=size.small, text="Bottom")
-plotshape(validUptrend and bar_index == bar_index - topBar, "Top", shape.triangledown, 
-          location.abovebar, color.new(color.red, 0), size=size.small, text="Top")
+// // Plot entry signals
+// plotshape(longSignal, "LONG Entry", shape.triangleup, location.belowbar, 
+//      color.new(color.lime, 0), size=size.normal, text="BUY")
+// plotshape(shortSignal, "SHORT Entry", shape.triangledown, location.abovebar, 
+//      color.new(color.red, 0), size=size.normal, text="SELL")
 
-// Vẽ tín hiệu BUY và SELL
-plotshape(showSignals and buySignal, "BUY", shape.labelup, location.belowbar, 
-          color.new(color.green, 0), text="BUY", textcolor=color.white, size=size.normal)
-plotshape(showSignals and sellSignal, "SELL", shape.labeldown, location.abovebar, 
-          color.new(color.red, 0), text="SELL", textcolor=color.white, size=size.normal)
+// Calculate Stop Loss and Take Profit levels
+// SL: dưới đáy OB (100% Fibo) + buffer
+// TP: 1R, 2R, 3R theo quy tắc
+var float longSL = na
+var float longTP1 = na
+var float longTP2 = na
+var float longTP3 = na
 
-// Highlight buy zone
-buyZoneActive = validUptrend and low <= buyLevel and high >= buyLevel
-sellZoneActive = validUptrend and (sellTakeProfit or sellStopLoss)
+if longSignal
+    longSL := level_1 - (level_1 * 0.002) // SL dưới swing low + 0.2% buffer
+    distance = close - longSL
+    longTP1 := close + (distance * 1) // 1R
+    longTP2 := close + (distance * 2) // 2R
+    longTP3 := close + (distance * 3) // 3R
 
-bgcolor(buyZoneActive ? color.new(color.green, 90) : na, title="Buy Zone")
-bgcolor(sellZoneActive ? color.new(color.red, 90) : na, title="Sell Zone")
+var float shortSL = na
+var float shortTP1 = na
+var float shortTP2 = na
+var float shortTP3 = na
 
-// Labels cho các mức
-if showLabels and validUptrend and barstate.islast
-    label.new(bar_index, level_0, "0% (" + str.tostring(level_0, "#.##") + ")", 
-              style=label.style_label_left, color=color_0, textcolor=color.white, size=size.small)
-    label.new(bar_index, level_236, "23.6% (" + str.tostring(level_236, "#.##") + ")", 
-              style=label.style_label_left, color=color_236, textcolor=color.white, size=size.small)
-    label.new(bar_index, level_382, "38.2% (" + str.tostring(level_382, "#.##") + ")", 
-              style=label.style_label_left, color=color_382, textcolor=color.white, size=size.small)
-    label.new(bar_index, level_500, "50% (" + str.tostring(level_500, "#.##") + ")", 
-              style=label.style_label_left, color=color_500, textcolor=color.white, size=size.small)
-    label.new(bar_index, level_618, "61.8% (" + str.tostring(level_618, "#.##") + ")", 
-              style=label.style_label_left, color=color_618, textcolor=color.white, size=size.small)
-    label.new(bar_index, level_786, "78.6% (" + str.tostring(level_786, "#.##") + ")", 
-              style=label.style_label_left, color=color_786, textcolor=color.white, size=size.small)
-    label.new(bar_index, level_100, "100% (" + str.tostring(level_100, "#.##") + ")", 
-              style=label.style_label_left, color=color_100, textcolor=color.white, size=size.small)
+if shortSignal
+    shortSL := level_0 + (level_0 * 0.002) // SL trên swing high + 0.2% buffer
+    distance = shortSL - close
+    shortTP1 := close - (distance * 1) // 1R
+    shortTP2 := close - (distance * 2) // 2R
+    shortTP3 := close - (distance * 3) // 3R
 
-// Thông tin debug
-if validUptrend and barstate.islast
-    var table debugTable = table.new(position.top_right, 2, 7, bgcolor=color.new(color.black, 80))
-    table.cell(debugTable, 0, 0, "Bottom:", text_color=color.white)
-    table.cell(debugTable, 1, 0, str.tostring(bottom, "#.##"), text_color=color.green)
-    table.cell(debugTable, 0, 1, "Top:", text_color=color.white)
-    table.cell(debugTable, 1, 1, str.tostring(top, "#.##"), text_color=color.red)
-    table.cell(debugTable, 0, 2, "Range:", text_color=color.white)
-    table.cell(debugTable, 1, 2, str.tostring(top - bottom, "#.##"), text_color=color.yellow)
-    table.cell(debugTable, 0, 3, "Buy Zone:", text_color=color.white)
-    table.cell(debugTable, 1, 3, str.tostring(buyLevel, "#.##") + " (" + buyZone + ")", text_color=color.aqua)
-    table.cell(debugTable, 0, 4, "Target:", text_color=color.white)
-    table.cell(debugTable, 1, 4, str.tostring(level_0, "#.##") + " (0%)", text_color=color.lime)
-    table.cell(debugTable, 0, 5, "Stop Loss:", text_color=color.white)
-    table.cell(debugTable, 1, 5, str.tostring(level_100, "#.##") + " (100%)", text_color=color.orange)
-    table.cell(debugTable, 0, 6, "Lookback:", text_color=color.white)
-    table.cell(debugTable, 1, 6, str.tostring(lookback), text_color=color.white)
+// Display entry info
+if longSignal
+    label.new(bar_index, low, 
+         "Buy: " + str.tostring(close, format.mintick),
+         style=label.style_label_up, color=color.new(color.green, 20), 
+         textcolor=color.white, size=size.small)
+
+if shortSignal
+    label.new(bar_index, high, 
+         "Sell: " + str.tostring(close, format.mintick),
+         style=label.style_label_down, color=color.new(color.red, 20), 
+         textcolor=color.white, size=size.small)
+
+// Alerts for entry signals
+alertcondition(longSignal, "LONG Entry at Fibo", "🟢 LONG tại vùng Fibonacci {{ticker}} - Kiểm tra điều kiện entry")
+alertcondition(shortSignal, "SHORT Entry at Fibo", "🔴 SHORT tại vùng Fibonacci {{ticker}} - Kiểm tra điều kiện entry")
+
+// Alerts for Fibonacci touch
+alertcondition(close <= level_618 and close[1] > level_618, "Price at 61.8%", "Giá chạm Fibonacci 61.8% - Vùng vào lệnh golden")
+alertcondition(close <= level_500 and close[1] > level_500, "Price at 50%", "Giá chạm Fibonacci 50% - Vùng vào lệnh")
+alertcondition(close <= level_786 and close[1] > level_786, "Price at 78.6%", "Giá chạm Fibonacci 78.6% - Bắt sớm")
