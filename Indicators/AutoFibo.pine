@@ -5,6 +5,7 @@ indicator("Auto Fibonacci Retracement", overlay=true, max_lines_count=500)
 lookback = input.int(50, "Lookback Period", minval=10, maxval=500)
 showLevels = input.bool(true, "Show Fibonacci Levels")
 showLabels = input.bool(true, "Show Labels")
+confirmCandles = input.int(2, "Confirmation Candles", minval=1, maxval=5, tooltip="Số nến liên tiếp cần thỏa điều kiện để lọc nhiễu")
 
 // Fibonacci levels
 fib_0 = input.float(0.0, "Level 0", group="Fibonacci Levels")
@@ -88,20 +89,15 @@ inBuyZone := not na(level_618) and close >= level_618 and close <= level_500
 inSellZone := not na(level_382) and close <= level_382 and close >= level_236
 
 // Additional indicators for entry confirmation
-ema5 = ta.ema(close, 5)
-ema10 = ta.ema(close, 10)
-ema20 = ta.ema(close, 20)
-
-rsi = ta.rsi(close, 14)
-[macdLine, signalLine, histLine] = ta.macd(close, 12, 26, 9)
+// Removed: EMA, RSI, MACD
 
 // LONG ENTRY CONDITIONS (tại vùng Fibo 0.5-0.618)
-// Theo quy tắc: ưu tiên 0.5–0.618 trùng OB + ≥3 điều kiện trigger
+// Theo quy tắc: ưu tiên 0.5–0.618 trùng OB + các điều kiện trigger
 longCondition1 = inBuyZone
-longCondition2 = ema5 > ema10 and ema10 > ema20 // EMA bullish
-longCondition3 = rsi > 50 or (rsi < 50 and rsi > rsi[1] and rsi[1] > rsi[2]) // RSI bullish or divergence
-longCondition4 = macdLine > signalLine or (histLine > histLine[1]) // MACD bullish
-longCondition5 = close > open // Bullish candle
+longCondition2 = close > open // Bullish candle
+longCondition3 = close > close[1] // Higher close than previous
+longCondition4 = high > high[1] // Higher high
+longCondition5 = low > low[1] // Higher low (uptrend)
 
 // Count conditions met
 var int longScore = 0
@@ -119,24 +115,35 @@ if longCondition4
 if longCondition5
     longScore += 1
 
+// Confirmation candles counter for LONG
+var int longConfirmCount = 0
+bool longConditionsMet = longScore >= 3
+
+// Đếm số nến liên tiếp thỏa điều kiện
+if longConditionsMet
+    longConfirmCount += 1
+else
+    longConfirmCount := 0
+
 // LONG signal: cần ít nhất 3/5 điều kiện (theo rule ≥3 trigger)
 var string lastSignalType = "" // Theo dõi lệnh cuối: "LONG" hoặc "SHORT"
 var bool prevLongSignal = false
 
-// Chỉ cho phép LONG nếu lệnh trước không phải LONG (luân phiên)
-longSignal = longScore >= 3 and not prevLongSignal and lastSignalType != "LONG"
+// Chỉ cho phép LONG nếu lệnh trước không phải LONG (luân phiên) và đủ số nến confirm
+longSignal = longConfirmCount >= confirmCandles and not prevLongSignal and lastSignalType != "LONG"
 if longSignal
     prevLongSignal := true
     lastSignalType := "LONG"
+    longConfirmCount := 0 // Reset counter sau khi có tín hiệu
 if not inBuyZone
     prevLongSignal := false
 
 // SHORT ENTRY CONDITIONS (tại vùng Fibo retest)
 shortCondition1 = inSellZone
-shortCondition2 = ema5 < ema10 and ema10 < ema20 // EMA bearish
-shortCondition3 = rsi < 50 or (rsi > 50 and rsi < rsi[1] and rsi[1] < rsi[2]) // RSI bearish or divergence
-shortCondition4 = macdLine < signalLine or (histLine < histLine[1]) // MACD bearish
-shortCondition5 = close < open // Bearish candle
+shortCondition2 = close < open // Bearish candle
+shortCondition3 = close < close[1] // Lower close than previous
+shortCondition4 = high < high[1] // Lower high
+shortCondition5 = low < low[1] // Lower low (downtrend)
 
 // Count conditions met
 var int shortScore = 0
@@ -154,14 +161,25 @@ if shortCondition4
 if shortCondition5
     shortScore += 1
 
+// Confirmation candles counter for SHORT
+var int shortConfirmCount = 0
+bool shortConditionsMet = shortScore >= 3
+
+// Đếm số nến liên tiếp thỏa điều kiện
+if shortConditionsMet
+    shortConfirmCount += 1
+else
+    shortConfirmCount := 0
+
 // SHORT signal: cần ít nhất 3/5 điều kiện
 var bool prevShortSignal = false
 
-// Chỉ cho phép SHORT nếu lệnh trước không phải SHORT (luân phiên)
-shortSignal = shortScore >= 3 and not prevShortSignal and lastSignalType != "SHORT"
+// Chỉ cho phép SHORT nếu lệnh trước không phải SHORT (luân phiên) và đủ số nến confirm
+shortSignal = shortConfirmCount >= confirmCandles and not prevShortSignal and lastSignalType != "SHORT"
 if shortSignal
     prevShortSignal := true
     lastSignalType := "SHORT"
+    shortConfirmCount := 0 // Reset counter sau khi có tín hiệu
 if not inSellZone
     prevShortSignal := false
 
