@@ -43,13 +43,32 @@ obExtend = input.int(20, "OB Extension", group="Order Block")
 // Fibonacci Settings
 fiboLookback = input.int(50, "Fibo Lookback", minval=10, maxval=500, group="Fibonacci")
 
+// Ichimoku Settings
+conversionPeriods = input.int(9, "Conversion Line Length", minval=1, group="Ichimoku Cloud")
+basePeriods = input.int(26, "Base Line Length", minval=1, group="Ichimoku Cloud")
+laggingSpan2Periods = input.int(52, "Leading Span B Length", minval=1, group="Ichimoku Cloud")
+displacement = input.int(26, "Displacement", minval=1, group="Ichimoku Cloud")
+
 // Volume Profile Settings
 vpBars = input.int(150, "VP Bars", minval=1, maxval=500, group="Volume Profile")
 vpRows = input.int(24, "VP Rows", minval=5, maxval=100, group="Volume Profile")
 
+// Indicator Weights
+weightEMA = input.int(2, "EMA Weight", minval=0, maxval=5, group="Weights")
+weightMACD = input.int(2, "MACD Weight", minval=0, maxval=5, group="Weights")
+weightRSI = input.int(1, "RSI Weight", minval=0, maxval=5, group="Weights")
+weightMFI = input.int(1, "MFI Weight", minval=0, maxval=5, group="Weights")
+weightSuperTrend = input.int(3, "SuperTrend Weight", minval=0, maxval=5, group="Weights")
+weightBB = input.int(1, "Bollinger Bands Weight", minval=0, maxval=5, group="Weights")
+weightOB = input.int(2, "Order Block/Fibo Weight", minval=0, maxval=5, group="Weights")
+weightPOC = input.int(2, "POC Weight", minval=0, maxval=5, group="Weights")
+weightIchimoku = input.int(3, "Ichimoku Weight", minval=0, maxval=5, group="Weights")
+
 // Signal Settings
 showSignals = input.bool(true, "Show Signals", group="Display")
 showEMAs = input.bool(true, "Show EMAs", group="Display")
+minScore = input.float(8.0, "Min Score", minval=0.0, maxval=50.0, step=0.5, group="Display")
+confirmBars = input.int(2, "Confirm Bars", minval=1, maxval=5, group="Display")
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CALCULATIONS - EMAs
@@ -187,6 +206,36 @@ inFiboBuyZone = not na(fibo_618) and close >= fibo_618 and close <= fibo_500
 inFiboSellZone = not na(fibo_382) and close <= fibo_382 and close >= fibo_618
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - Ichimoku Cloud
+// ═══════════════════════════════════════════════════════════════════════════
+
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+
+// Calculate cloud for current bar (not displaced)
+cloudTop = math.max(leadLine1[displacement - 1], leadLine2[displacement - 1])
+cloudBottom = math.min(leadLine1[displacement - 1], leadLine2[displacement - 1])
+bullishCloud = leadLine1 > leadLine2
+
+// Ichimoku signals
+tkCrossBullish = ta.crossover(conversionLine, baseLine)
+tkCrossBearish = ta.crossunder(conversionLine, baseLine)
+priceAboveCloud = close > cloudTop
+priceBelowCloud = close < cloudBottom
+priceInCloud = close >= cloudBottom and close <= cloudTop
+cloudBreakBullish = ta.crossover(close, cloudTop)
+cloudBreakBearish = ta.crossunder(close, cloudBottom)
+chikouAbovePrice = close > close[displacement]
+chikouBelowPrice = close < close[displacement]
+
+// Ichimoku trend conditions
+ichimokuBullish = priceAboveCloud and bullishCloud and chikouAbovePrice and conversionLine > baseLine
+ichimokuBearish = priceBelowCloud and not bullishCloud and chikouBelowPrice and conversionLine < baseLine
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CALCULATIONS - Volume Profile POC
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -249,6 +298,7 @@ buyCondition5 = stUptrend
 buyCondition6 = (bbBounceUp or bbCrossUp or close > bbBasis)
 buyCondition7 = bullishOB or inFiboBuyZone
 buyCondition8 = pocBreakUp or close > pocLevel
+buyCondition9 = ichimokuBullish or cloudBreakBullish or tkCrossBullish
 
 // SELL CONDITIONS (Nhiều tín hiệu hội tụ)
 sellCondition1 = emaCrossDown or (emaDowntrend and close < ema20_val)
@@ -259,18 +309,36 @@ sellCondition5 = stDowntrend
 sellCondition6 = (bbBounceDown or bbCrossDown or close < bbBasis)
 sellCondition7 = bearishOB or inFiboSellZone
 sellCondition8 = pocBreakDown or close < pocLevel
+sellCondition9 = ichimokuBearish or cloudBreakBearish or tkCrossBearish
 
-// Tính điểm cho mỗi tín hiệu
-buyScore = (buyCondition1 ? 1 : 0) + (buyCondition2 ? 1 : 0) + (buyCondition3 ? 1 : 0) + (buyCondition4 ? 1 : 0) + (buyCondition5 ? 1 : 0) + (buyCondition6 ? 1 : 0) + (buyCondition7 ? 1 : 0) + (buyCondition8 ? 1 : 0)
+// Tính điểm cho mỗi tín hiệu với trọng số
+buyScore = (buyCondition1 ? weightEMA : 0) + (buyCondition2 ? weightMACD : 0) + (buyCondition3 ? weightRSI : 0) + (buyCondition4 ? weightMFI : 0) + (buyCondition5 ? weightSuperTrend : 0) + (buyCondition6 ? weightBB : 0) + (buyCondition7 ? weightOB : 0) + (buyCondition8 ? weightPOC : 0) + (buyCondition9 ? weightIchimoku : 0)
 
-sellScore = (sellCondition1 ? 1 : 0) + (sellCondition2 ? 1 : 0) + (sellCondition3 ? 1 : 0) + (sellCondition4 ? 1 : 0) + (sellCondition5 ? 1 : 0) + (sellCondition6 ? 1 : 0) + (sellCondition7 ? 1 : 0) + (sellCondition8 ? 1 : 0)
+sellScore = (sellCondition1 ? weightEMA : 0) + (sellCondition2 ? weightMACD : 0) + (sellCondition3 ? weightRSI : 0) + (sellCondition4 ? weightMFI : 0) + (sellCondition5 ? weightSuperTrend : 0) + (sellCondition6 ? weightBB : 0) + (sellCondition7 ? weightOB : 0) + (sellCondition8 ? weightPOC : 0) + (sellCondition9 ? weightIchimoku : 0)
 
-// Ngưỡng tối thiểu để vào lệnh (ít nhất 5/8 điều kiện thỏa mãn)
-minScore = 5
+// Tổng trọng số tối đa
+maxScore = weightEMA + weightMACD + weightRSI + weightMFI + weightSuperTrend + weightBB + weightOB + weightPOC + weightIchimoku
 
 // Tín hiệu cuối cùng
 strongBuySignal = buyScore >= minScore and close > open
 strongSellSignal = sellScore >= minScore and close < open
+
+// Xác nhận tín hiệu qua nhiều bars để khử nhiễu
+var int buyConfirmCount = 0
+var int sellConfirmCount = 0
+
+if strongBuySignal
+    buyConfirmCount += 1
+    sellConfirmCount := 0
+else if strongSellSignal
+    sellConfirmCount += 1
+    buyConfirmCount := 0
+else
+    buyConfirmCount := 0
+    sellConfirmCount := 0
+
+confirmedBuySignal = buyConfirmCount >= confirmBars
+confirmedSellSignal = sellConfirmCount >= confirmBars
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ALTERNATION LOGIC - ĐẢM BẢO BUY VÀ SELL LUÂN PHIÊN
@@ -278,8 +346,8 @@ strongSellSignal = sellScore >= minScore and close < open
 
 var int lastSignalType = 0  // 0 = none, 1 = buy, -1 = sell
 
-buySignal = strongBuySignal and lastSignalType != 1
-sellSignal = strongSellSignal and lastSignalType != -1
+buySignal = confirmedBuySignal and lastSignalType != 1
+sellSignal = confirmedSellSignal and lastSignalType != -1
 
 if buySignal
     lastSignalType := 1
@@ -315,20 +383,54 @@ plot(showEMAs ? fibo_618 : na, "Fibo 61.8%", color=color.new(color.blue, 70), li
 plot(showEMAs ? fibo_500 : na, "Fibo 50%", color=color.new(color.white, 70), linewidth=1, style=plot.style_circles)
 plot(showEMAs ? fibo_382 : na, "Fibo 38.2%", color=color.new(color.yellow, 70), linewidth=1, style=plot.style_circles)
 
+// Plot Ichimoku Cloud
+p1 = plot(leadLine1, offset=displacement - 1, color=color.new(color.green, 70), title="Leading Span A", linewidth=1)
+p2 = plot(leadLine2, offset=displacement - 1, color=color.new(color.red, 70), title="Leading Span B", linewidth=1)
+fill(p1, p2, color=leadLine1 > leadLine2 ? color.new(color.green, 90) : color.new(color.red, 90), title="Ichimoku Cloud")
+plot(conversionLine, color=color.new(color.blue, 0), title="Conversion Line", linewidth=1)
+plot(baseLine, color=color.new(color.fuchsia, 0), title="Base Line", linewidth=1)
+plot(close, offset=-displacement + 1, color=color.new(color.orange, 50), title="Lagging Span", linewidth=1)
+
 // Plot Signals với labels động
 if showSignals and buySignal
-    label.new(bar_index, low, "BUY\n" + str.tostring(buyScore) + "/8", 
+    // Tạo chi tiết các chỉ báo đóng góp
+    details = ""
+    details += buyCondition1 ? "✓EMA(" + str.tostring(weightEMA) + ")\n" : ""
+    details += buyCondition2 ? "✓MACD(" + str.tostring(weightMACD) + ")\n" : ""
+    details += buyCondition3 ? "✓RSI(" + str.tostring(weightRSI) + ")\n" : ""
+    details += buyCondition4 ? "✓MFI(" + str.tostring(weightMFI) + ")\n" : ""
+    details += buyCondition5 ? "✓ST(" + str.tostring(weightSuperTrend) + ")\n" : ""
+    details += buyCondition6 ? "✓BB(" + str.tostring(weightBB) + ")\n" : ""
+    details += buyCondition7 ? "✓OB/Fibo(" + str.tostring(weightOB) + ")\n" : ""
+    details += buyCondition8 ? "✓POC(" + str.tostring(weightPOC) + ")\n" : ""
+    details += buyCondition9 ? "✓Ichi(" + str.tostring(weightIchimoku) + ")\n" : ""
+    
+    label.new(bar_index, low, "BUY " + str.tostring(buyScore, '#.#') + "/" + str.tostring(maxScore) + "\n" + details, 
               style=label.style_label_up, 
               color=color.new(color.green, 0), 
               textcolor=color.white, 
-              size=size.normal)
+              size=size.small,
+              tooltip="Active Indicators:\n" + details)
 
 if showSignals and sellSignal
-    label.new(bar_index, high, "SELL\n" + str.tostring(sellScore) + "/8", 
+    // Tạo chi tiết các chỉ báo đóng góp
+    details = ""
+    details += sellCondition1 ? "✓EMA(" + str.tostring(weightEMA) + ")\n" : ""
+    details += sellCondition2 ? "✓MACD(" + str.tostring(weightMACD) + ")\n" : ""
+    details += sellCondition3 ? "✓RSI(" + str.tostring(weightRSI) + ")\n" : ""
+    details += sellCondition4 ? "✓MFI(" + str.tostring(weightMFI) + ")\n" : ""
+    details += sellCondition5 ? "✓ST(" + str.tostring(weightSuperTrend) + ")\n" : ""
+    details += sellCondition6 ? "✓BB(" + str.tostring(weightBB) + ")\n" : ""
+    details += sellCondition7 ? "✓OB/Fibo(" + str.tostring(weightOB) + ")\n" : ""
+    details += sellCondition8 ? "✓POC(" + str.tostring(weightPOC) + ")\n" : ""
+    details += sellCondition9 ? "✓Ichi(" + str.tostring(weightIchimoku) + ")\n" : ""
+    
+    label.new(bar_index, high, "SELL " + str.tostring(sellScore, '#.#') + "/" + str.tostring(maxScore) + "\n" + details, 
               style=label.style_label_down, 
               color=color.new(color.red, 0), 
               textcolor=color.white, 
-              size=size.normal)
+              size=size.small,
+              tooltip="Active Indicators:\n" + details)
 
 // Plot signals shapes (without dynamic text)
 plotshape(showSignals and buySignal, "BUY Signal", shape.triangleup, location.belowbar, 
@@ -345,5 +447,5 @@ bgcolor(sellSignal ? color.new(color.red, 90) : na)
 // ALERTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-alertcondition(buySignal, title="LUPI BUY Signal", message="LUPI BUY: Score {{plot_0}}/8")
-alertcondition(sellSignal, title="LUPI SELL Signal", message="LUPI SELL: Score {{plot_1}}/8")
+alertcondition(buySignal, title="LUPI BUY Signal", message="LUPI BUY Signal Triggered")
+alertcondition(sellSignal, title="LUPI SELL Signal", message="LUPI SELL Signal Triggered")
