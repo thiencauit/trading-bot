@@ -1,0 +1,349 @@
+//@version=5
+indicator("Lupi Complete Trading System", overlay=true, max_boxes_count=500, max_lines_count=500)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INPUT SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// EMA Settings
+ema5 = input.int(5, "EMA 5", group="EMAs")
+ema10 = input.int(10, "EMA 10", group="EMAs")
+ema20 = input.int(20, "EMA 20", group="EMAs")
+ema50 = input.int(50, "EMA 50", group="EMAs")
+ema100 = input.int(100, "EMA 100", group="EMAs")
+ema200 = input.int(200, "EMA 200", group="EMAs")
+
+// MACD Settings
+macdFast = input.int(12, "MACD Fast", group="MACD")
+macdSlow = input.int(26, "MACD Slow", group="MACD")
+macdSignal = input.int(9, "MACD Signal", group="MACD")
+
+// RSI Settings
+rsiLength = input.int(14, "RSI Length", group="RSI")
+rsiOverbought = input.int(70, "RSI Overbought", group="RSI")
+rsiOversold = input.int(30, "RSI Oversold", group="RSI")
+
+// MFI Settings
+mfiLength = input.int(14, "MFI Length", group="MFI")
+mfiOverbought = input.int(70, "MFI Overbought", group="MFI")
+mfiOversold = input.int(25, "MFI Oversold", group="MFI")
+
+// SuperTrend Settings
+atrPeriod = input.int(10, "SuperTrend ATR", group="SuperTrend")
+atrMultiplier = input.float(3.0, "SuperTrend Factor", group="SuperTrend")
+
+// Bollinger Bands Settings
+bbLength = input.int(20, "BB Length", group="Bollinger Bands")
+bbMult = input.float(2.0, "BB StdDev", group="Bollinger Bands")
+
+// Order Block Settings
+obPeriod = input.int(3, "OB Confirmation", minval=1, maxval=10, group="Order Block")
+obExtend = input.int(20, "OB Extension", group="Order Block")
+
+// Fibonacci Settings
+fiboLookback = input.int(50, "Fibo Lookback", minval=10, maxval=500, group="Fibonacci")
+
+// Volume Profile Settings
+vpBars = input.int(150, "VP Bars", minval=1, maxval=500, group="Volume Profile")
+vpRows = input.int(24, "VP Rows", minval=5, maxval=100, group="Volume Profile")
+
+// Signal Settings
+showSignals = input.bool(true, "Show Signals", group="Display")
+showEMAs = input.bool(true, "Show EMAs", group="Display")
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - EMAs
+// ═══════════════════════════════════════════════════════════════════════════
+
+ema5_val = ta.ema(close, ema5)
+ema10_val = ta.ema(close, ema10)
+ema20_val = ta.ema(close, ema20)
+ema50_val = ta.ema(close, ema50)
+ema100_val = ta.ema(close, ema100)
+ema200_val = ta.ema(close, ema200)
+
+// EMA Trend Detection
+emaUptrend = ema5_val > ema10_val and ema10_val > ema20_val and ema20_val > ema50_val
+emaDowntrend = ema5_val < ema10_val and ema10_val < ema20_val and ema20_val < ema50_val
+emaCrossUp = ta.crossover(ema5_val, ema20_val)
+emaCrossDown = ta.crossunder(ema5_val, ema20_val)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - MACD
+// ═══════════════════════════════════════════════════════════════════════════
+
+[macdLine, signalLine, histLine] = ta.macd(close, macdFast, macdSlow, macdSignal)
+macdCrossUp = ta.crossover(macdLine, signalLine)
+macdCrossDown = ta.crossunder(macdLine, signalLine)
+macdBullish = macdLine > signalLine and histLine > 0
+macdBearish = macdLine < signalLine and histLine < 0
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - RSI
+// ═══════════════════════════════════════════════════════════════════════════
+
+rsi = ta.rsi(close, rsiLength)
+rsiOversoldZone = rsi < rsiOversold
+rsiOverboughtZone = rsi > rsiOverbought
+rsiBullish = rsi > 50 and rsi < rsiOverbought
+rsiBearish = rsi < 50 and rsi > rsiOversold
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - MFI
+// ═══════════════════════════════════════════════════════════════════════════
+
+mfi = ta.mfi(hlc3, mfiLength)
+mfiOversoldZone = mfi < mfiOversold
+mfiOverboughtZone = mfi > mfiOverbought
+mfiBullish = mfi > 50 and mfi < mfiOverbought
+mfiBearish = mfi < 50 and mfi > mfiOversold
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - SuperTrend
+// ═══════════════════════════════════════════════════════════════════════════
+
+[supertrend, direction] = ta.supertrend(atrMultiplier, atrPeriod)
+stUptrend = direction < 0
+stDowntrend = direction > 0
+stBuySignal = ta.change(direction) < 0
+stSellSignal = ta.change(direction) > 0
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - Bollinger Bands
+// ═══════════════════════════════════════════════════════════════════════════
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMult * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+
+bbBounceUp = low <= bbLower and close > bbLower and close > open
+bbBounceDown = high >= bbUpper and close < bbUpper and close < open
+bbCrossUp = ta.crossover(close, bbBasis)
+bbCrossDown = ta.crossunder(close, bbBasis)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - Order Block
+// ═══════════════════════════════════════════════════════════════════════════
+
+isBullish(index) => close[index] > open[index]
+isBearish(index) => close[index] < open[index]
+
+checkLowerHighs(startIndex, n) =>
+    valid = true
+    if startIndex < n
+        valid := false
+    else
+        lastHigh = high[startIndex]
+        for i = 1 to n
+            if high[startIndex - i] >= lastHigh
+                valid := false
+                break
+            lastHigh := high[startIndex - i]
+    valid
+
+checkHigherLows(startIndex, n) =>
+    valid = true
+    if startIndex < n
+        valid := false
+    else
+        lastLow = low[startIndex]
+        for i = 1 to n
+            if low[startIndex - i] <= lastLow
+                valid := false
+                break
+            lastLow := low[startIndex - i]
+    valid
+
+bearishOB = isBullish(obPeriod) and checkLowerHighs(obPeriod, obPeriod)
+bullishOB = isBearish(obPeriod) and checkHigherLows(obPeriod, obPeriod)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - Fibonacci
+// ═══════════════════════════════════════════════════════════════════════════
+
+var float swingLow = na
+var float swingHigh = na
+
+lowestPrice = ta.lowest(low, fiboLookback)
+if low == lowestPrice
+    swingLow := low
+
+highestPrice = ta.highest(high, fiboLookback)
+if high == highestPrice
+    swingHigh := high
+
+var float fibo_618 = na
+var float fibo_500 = na
+var float fibo_382 = na
+
+if not na(swingLow) and not na(swingHigh)
+    diff = swingHigh - swingLow
+    fibo_618 := swingHigh - (diff * 0.618)
+    fibo_500 := swingHigh - (diff * 0.500)
+    fibo_382 := swingHigh - (diff * 0.382)
+
+inFiboBuyZone = not na(fibo_618) and close >= fibo_618 and close <= fibo_500
+inFiboSellZone = not na(fibo_382) and close <= fibo_382 and close >= fibo_618
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATIONS - Volume Profile POC
+// ═══════════════════════════════════════════════════════════════════════════
+
+vpTop = ta.highest(vpBars)
+vpBot = ta.lowest(vpBars)
+vpStep = (vpTop - vpBot) / vpRows
+
+vpLevels = array.new_float(vpRows + 1)
+for x = 0 to vpRows
+    array.set(vpLevels, x, vpBot + vpStep * x)
+
+get_vol(y11, y12, y21, y22, height, vol) =>
+    nz(math.max(math.min(math.max(y11, y12), math.max(y21, y22)) - math.max(math.min(y11, y12), math.min(y21, y22)), 0) * vol / height)
+
+vpVolumes = array.new_float(vpRows * 2, 0.)
+for bars = 0 to vpBars - 1
+    body_top = math.max(close[bars], open[bars])
+    body_bot = math.min(close[bars], open[bars])
+    itsgreen = close[bars] >= open[bars]
+    topwick = high[bars] - body_top
+    bottomwick = body_bot - low[bars]
+    body = body_top - body_bot
+    bodyvol = body * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+    topwickvol = 2 * topwick * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+    bottomwickvol = 2 * bottomwick * volume[bars] / (2 * topwick + 2 * bottomwick + body)
+    for x = 0 to vpRows - 1
+        array.set(vpVolumes, x, array.get(vpVolumes, x) + (itsgreen ? get_vol(array.get(vpLevels, x), array.get(vpLevels, x + 1), body_bot, body_top, body, bodyvol) : 0) + get_vol(array.get(vpLevels, x), array.get(vpLevels, x + 1), body_top, high[bars], topwick, topwickvol) / 2 + get_vol(array.get(vpLevels, x), array.get(vpLevels, x + 1), body_bot, low[bars], bottomwick, bottomwickvol) / 2)
+        array.set(vpVolumes, x + vpRows, array.get(vpVolumes, x + vpRows) + (itsgreen ? 0 : get_vol(array.get(vpLevels, x), array.get(vpLevels, x + 1), body_bot, body_top, body, bodyvol)) + get_vol(array.get(vpLevels, x), array.get(vpLevels, x + 1), body_top, high[bars], topwick, topwickvol) / 2 + get_vol(array.get(vpLevels, x), array.get(vpLevels, x + 1), body_bot, low[bars], bottomwick, bottomwickvol) / 2)
+
+vpTotalVols = array.new_float(vpRows, 0.)
+for x = 0 to vpRows - 1
+    array.set(vpTotalVols, x, array.get(vpVolumes, x) + array.get(vpVolumes, x + vpRows))
+
+pocIndex = array.indexof(vpTotalVols, array.max(vpTotalVols))
+pocLevel = (array.get(vpLevels, pocIndex) + array.get(vpLevels, pocIndex + 1)) / 2
+
+var bool wasAbovePOC = false
+var bool wasBelowPOC = false
+
+if close[1] > pocLevel
+    wasAbovePOC := true
+    wasBelowPOC := false
+else if close[1] < pocLevel
+    wasBelowPOC := true
+    wasAbovePOC := false
+
+pocBreakUp = wasBelowPOC and close > pocLevel
+pocBreakDown = wasAbovePOC and close < pocLevel
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LUPI SIGNAL LOGIC - ĐIỀU KIỆN VÀO LỆNH NHẠY VÀ CHÍNH XÁC
+// ═══════════════════════════════════════════════════════════════════════════
+
+// BUY CONDITIONS (Nhiều tín hiệu hội tụ)
+buyCondition1 = emaCrossUp or (emaUptrend and close > ema20_val)
+buyCondition2 = macdCrossUp or macdBullish
+buyCondition3 = rsi > rsiOversold and rsi < 70 and ta.rising(rsi, 2)
+buyCondition4 = mfi > mfiOversold and mfi < 70
+buyCondition5 = stUptrend
+buyCondition6 = (bbBounceUp or bbCrossUp or close > bbBasis)
+buyCondition7 = bullishOB or inFiboBuyZone
+buyCondition8 = pocBreakUp or close > pocLevel
+
+// SELL CONDITIONS (Nhiều tín hiệu hội tụ)
+sellCondition1 = emaCrossDown or (emaDowntrend and close < ema20_val)
+sellCondition2 = macdCrossDown or macdBearish
+sellCondition3 = rsi < rsiOverbought and rsi > 30 and ta.falling(rsi, 2)
+sellCondition4 = mfi < mfiOverbought and mfi > 30
+sellCondition5 = stDowntrend
+sellCondition6 = (bbBounceDown or bbCrossDown or close < bbBasis)
+sellCondition7 = bearishOB or inFiboSellZone
+sellCondition8 = pocBreakDown or close < pocLevel
+
+// Tính điểm cho mỗi tín hiệu
+buyScore = (buyCondition1 ? 1 : 0) + (buyCondition2 ? 1 : 0) + (buyCondition3 ? 1 : 0) + (buyCondition4 ? 1 : 0) + (buyCondition5 ? 1 : 0) + (buyCondition6 ? 1 : 0) + (buyCondition7 ? 1 : 0) + (buyCondition8 ? 1 : 0)
+
+sellScore = (sellCondition1 ? 1 : 0) + (sellCondition2 ? 1 : 0) + (sellCondition3 ? 1 : 0) + (sellCondition4 ? 1 : 0) + (sellCondition5 ? 1 : 0) + (sellCondition6 ? 1 : 0) + (sellCondition7 ? 1 : 0) + (sellCondition8 ? 1 : 0)
+
+// Ngưỡng tối thiểu để vào lệnh (ít nhất 5/8 điều kiện thỏa mãn)
+minScore = 5
+
+// Tín hiệu cuối cùng
+strongBuySignal = buyScore >= minScore and close > open
+strongSellSignal = sellScore >= minScore and close < open
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALTERNATION LOGIC - ĐẢM BẢO BUY VÀ SELL LUÂN PHIÊN
+// ═══════════════════════════════════════════════════════════════════════════
+
+var int lastSignalType = 0  // 0 = none, 1 = buy, -1 = sell
+
+buySignal = strongBuySignal and lastSignalType != 1
+sellSignal = strongSellSignal and lastSignalType != -1
+
+if buySignal
+    lastSignalType := 1
+if sellSignal
+    lastSignalType := -1
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PLOTTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Plot EMAs
+plot(showEMAs ? ema5_val : na, "EMA 5", color=color.new(color.red, 0), linewidth=1)
+plot(showEMAs ? ema10_val : na, "EMA 10", color=color.new(color.orange, 0), linewidth=1)
+plot(showEMAs ? ema20_val : na, "EMA 20", color=color.new(color.yellow, 0), linewidth=2)
+plot(showEMAs ? ema50_val : na, "EMA 50", color=color.new(color.blue, 0), linewidth=2)
+plot(showEMAs ? ema100_val : na, "EMA 100", color=color.new(color.purple, 0), linewidth=2)
+plot(showEMAs ? ema200_val : na, "EMA 200", color=color.new(color.white, 0), linewidth=3)
+
+// Plot SuperTrend
+upTrend = plot(direction < 0 ? supertrend : na, "SuperTrend Up", color=color.green, style=plot.style_linebr, linewidth=2)
+downTrend = plot(direction < 0 ? na : supertrend, "SuperTrend Down", color=color.red, style=plot.style_linebr, linewidth=2)
+
+// Plot Bollinger Bands
+plot(bbBasis, "BB Basis", color=color.new(color.blue, 0), linewidth=1)
+plot(bbUpper, "BB Upper", color=color.new(color.red, 50), linewidth=1)
+plot(bbLower, "BB Lower", color=color.new(color.green, 50), linewidth=1)
+
+// Plot POC Level
+plot(pocLevel, "POC", color=color.new(color.white, 30), linewidth=2, style=plot.style_cross)
+
+// Plot Fibonacci Levels
+plot(showEMAs ? fibo_618 : na, "Fibo 61.8%", color=color.new(color.blue, 70), linewidth=1, style=plot.style_circles)
+plot(showEMAs ? fibo_500 : na, "Fibo 50%", color=color.new(color.white, 70), linewidth=1, style=plot.style_circles)
+plot(showEMAs ? fibo_382 : na, "Fibo 38.2%", color=color.new(color.yellow, 70), linewidth=1, style=plot.style_circles)
+
+// Plot Signals với labels động
+if showSignals and buySignal
+    label.new(bar_index, low, "BUY\n" + str.tostring(buyScore) + "/8", 
+              style=label.style_label_up, 
+              color=color.new(color.green, 0), 
+              textcolor=color.white, 
+              size=size.normal)
+
+if showSignals and sellSignal
+    label.new(bar_index, high, "SELL\n" + str.tostring(sellScore) + "/8", 
+              style=label.style_label_down, 
+              color=color.new(color.red, 0), 
+              textcolor=color.white, 
+              size=size.normal)
+
+// Plot signals shapes (without dynamic text)
+plotshape(showSignals and buySignal, "BUY Signal", shape.triangleup, location.belowbar, 
+          color=color.new(color.green, 0), size=size.small)
+
+plotshape(showSignals and sellSignal, "SELL Signal", shape.triangledown, location.abovebar, 
+          color=color.new(color.red, 0), size=size.small)
+
+// Background Color
+bgcolor(buySignal ? color.new(color.green, 90) : na)
+bgcolor(sellSignal ? color.new(color.red, 90) : na)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+alertcondition(buySignal, title="LUPI BUY Signal", message="LUPI BUY: Score {{plot_0}}/8")
+alertcondition(sellSignal, title="LUPI SELL Signal", message="LUPI SELL: Score {{plot_1}}/8")
